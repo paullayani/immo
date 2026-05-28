@@ -6,7 +6,9 @@ const path = require('path');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.ANTHROPIC_API_KEY || '';
-const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// If CHROMIUM_PATH is set, use it explicitly (dev sandbox / custom install).
+// Otherwise, let Playwright auto-discover (Docker image, after `npx playwright install`).
+const CHROMIUM_PATH = process.env.CHROMIUM_PATH || null;
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname)));
@@ -322,7 +324,7 @@ app.post('/api/scan', async (req, res) => {
   try {
     browser = await chromium.launch({
       headless: true,
-      executablePath: CHROMIUM_PATH,
+      ...(CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {}),
       args: ['--ignore-certificate-errors', '--no-sandbox', '--disable-setuid-sandbox'],
     });
 
@@ -384,7 +386,7 @@ app.post('/api/scrape', async (req, res) => {
   try {
     browser = await chromium.launch({
       headless: true,
-      executablePath: CHROMIUM_PATH,
+      ...(CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {}),
       args: ['--ignore-certificate-errors', '--no-sandbox', '--disable-setuid-sandbox'],
     });
     const { page, ctx } = await newPage(browser);
