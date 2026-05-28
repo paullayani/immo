@@ -515,8 +515,43 @@ function setP(pct,msg){
 }
 
 // ══ SCAN ════════════════════════════════════════════════════════════
-// Appelle directement l'API LeBonCoin via un proxy CORS public.
-// Chaque annonce retournée a urlEstExacte:true → lien direct + vraies photos.
+// Récupère la vraie page HTML LeBonCoin (SSR) via proxy CORS et extrait
+// le JSON __NEXT_DATA__ qui contient les vraies annonces + vraies photos.
+async function fetchLBC(ville, budgetMax, surfMin) {
+  const lbcUrl = 'https://www.leboncoin.fr/recherche?' + new URLSearchParams(
+    Object.assign({ category: '9', locations: ville, price: '0-' + budgetMax, real_estate_type: '1,2,3' },
+    surfMin ? { square: surfMin + '-600' } : {})
+  );
+  const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(lbcUrl);
+  const resp = await fetch(proxyUrl);
+  if (!resp.ok) throw new Error('Proxy ' + resp.status);
+  const html = await resp.text();
+  if (html.includes('Host not in allowlist') || html.length < 500) throw new Error('Proxy bloqué');
+  const m = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!m) throw new Error(html.includes('captcha') || html.includes('robot') ? 'Anti-bot LeBonCoin' : 'Données introuvables');
+  const sd = JSON.parse(m[1])?.props?.pageProps?.searchData;
+  const ads = sd?.ads || sd?.initialAds || [];
+  const ga = (ad, k) => (ad.attributes || []).find(a => a.key === k)?.value || '';
+  return ads
+    .filter(ad => { const p = ad.price?.[0] || 0; return p >= 20000 && p <= budgetMax * 1.05; })
+    .map(ad => {
+      const surf = parseInt(ga(ad, 'square')) || 0;
+      const photos = (ad.images?.urls || []).map(u => u.replace('{size}', '400x300'));
+      return {
+        source: 'LeBonCoin', sk: 'leboncoin', ville,
+        cp: ad.location?.zipcode || '', quartier: ad.location?.city_label || '',
+        titre: ad.subject || '', desc: ad.body || '',
+        type: ga(ad, 'real_estate_type') === '3' ? 'Studio' : 'Appartement',
+        prix: ad.price?.[0] || 0, surf, pieces: parseInt(ga(ad, 'rooms')) || 0,
+        dpe: ga(ad, 'energy_rate') || '', agence: '',
+        photo: ad.images?.small_url || photos[0] || '',
+        photos: photos.slice(0, 8),
+        url: 'https://www.leboncoin.fr/ad/immobilier/' + ad.list_id,
+        urlEstExacte: true, annonceId: String(ad.list_id || ''),
+      };
+    });
+}
+
 async function startScan() {
   if (scanning) return;
   if (!VV.length) { toast('⚠️ Ajoutez au moins une ville'); return; }
@@ -529,6 +564,7 @@ async function startScan() {
   document.getElementById('cgrid').innerHTML = '';
   const not = NO(), ne = NE(), thr = T();
   const allListings = [];
+  const errs = [];
 
   try {
     const maxV = Math.min(VV.length, 5);
@@ -536,53 +572,21 @@ async function startScan() {
       const ville = VV[i];
       setP(10 + (i / maxV) * 72, 'LeBonCoin — ' + ville + '…');
       try {
-        const resp = await fetch('https://corsproxy.io/?https://api.leboncoin.fr/finder/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            filters: {
-              category: { id: '9' },
-              enums: { ad_type: ['offer'], real_estate_type: ['1', '2', '3'] },
-              location: { locations: [{ locationType: 'city', label: ville }] },
-              ranges: {
-                price: { min: 20000, max: BU() },
-                ...(SM() ? { square: { min: SM() } } : {})
-              }
-            },
-            limit: 35, limit_alu: 3, sort_by: 'time', sort_order: 'desc'
-          })
-        });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
-        for (const ad of (data.ads || [])) {
-          const prix = ad.price?.[0] || 0;
-          if (!prix || prix < 20000 || prix > BU() * 1.05) continue;
-          const ga = k => { const x = (ad.attributes || []).find(a => a.key === k); return x ? (x.value || '') : ''; };
-          const surf = parseInt(ga('square')) || 0;
-          if (SM() && surf > 0 && surf < SM()) continue;
-          const pieces = parseInt(ga('rooms')) || 0;
-          const dpe = ga('energy_rate') || '';
-          const tv = ga('real_estate_type');
-          const type = tv === '3' ? 'Studio' : tv === '2' ? 'Maison' : 'Appartement';
-          const photos = (ad.images?.urls || []).map(u => u.replace('{size}', '400x300'));
-          const photo = ad.images?.small_url || photos[0] || '';
-          const annonceId = String(ad.list_id || '');
-          allListings.push({
-            source: 'LeBonCoin', sk: 'leboncoin',
-            ville, cp: ad.location?.zipcode || '', quartier: ad.location?.city_label || '',
-            titre: ad.subject || '', type, desc: ad.body || '',
-            prix, surf, pieces, photo, photos: photos.slice(0, 8),
-            url: 'https://www.leboncoin.fr/ad/immobilier/' + annonceId,
-            urlEstExacte: true, annonceId, dpe, agence: '',
-          });
-        }
-      } catch (e) { console.warn('LBC', ville, e.message); }
+        const ads = await fetchLBC(ville, BU(), SM());
+        allListings.push(...ads);
+        if (ads.length) toast('✅ ' + ville + ' : ' + ads.length + ' annonces');
+        else toast('⚠️ ' + ville + ' : 0 résultats');
+      } catch (e) {
+        errs.push(ville + ': ' + e.message);
+        toast('❌ ' + ville + ' — ' + e.message, 4000);
+        console.warn('LBC', ville, e);
+      }
     }
 
     setP(87, 'Calcul des rentabilités…');
     const seen = new Set();
     R = allListings
-      .filter(l => { const k = l.url; if (seen.has(k)) return false; seen.add(k); return l.prix > 0; })
+      .filter(l => { if (seen.has(l.url)) return false; seen.add(l.url); return l.prix > 0; })
       .map(l => {
         const loyer = estL(l.ville || '', l.surf || 0);
         const pN = l.prix * (1 - ne / 100);
@@ -591,7 +595,27 @@ async function startScan() {
       })
       .sort((a, b) => b.rn - a.rn).slice(0, 300);
 
-    if (!R.length) { R = getFallback(); toast('ℹ️ API LeBonCoin indisponible — données démo'); }
+    if (!R.length) {
+      // Aucun résultat réel — afficher les liens de recherche directs, pas de fausses données
+      setP(100, '⚠️ Scan impossible — accès LeBonCoin bloqué');
+      setTimeout(() => {
+        document.getElementById('pwrap').classList.remove('show');
+        const errMsg = errs.length ? errs.join(' | ') : 'Proxy bloqué';
+        document.getElementById('cgrid').innerHTML = `<div style="grid-column:1/-1;padding:40px 30px;text-align:center">
+          <div style="font-size:28px;margin-bottom:14px">🚫</div>
+          <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:8px">Accès LeBonCoin bloqué</div>
+          <div style="font-size:12px;color:var(--ink3);margin-bottom:20px;font-family:monospace">${errMsg}</div>
+          <div style="font-size:13px;color:var(--ink2);margin-bottom:18px">Le proxy CORS ne peut pas atteindre LeBonCoin depuis votre navigateur.<br>Ouvrez directement les recherches ici :</div>
+          ${VV.map(v=>`<a href="https://www.leboncoin.fr/recherche?category=9&locations=${encodeURIComponent(v)}&price=0-${BU()}${SM()?'&square='+SM()+'-600':''}&real_estate_type=1,2,3" target="_blank" style="display:inline-block;margin:5px;padding:9px 18px;background:var(--gm);color:#fff;border-radius:7px;text-decoration:none;font-size:13px;font-weight:600">🏠 ${v} sur LeBonCoin</a>`).join('')}
+        </div>`;
+        document.getElementById('cgrid').style.display='block';
+        btn.disabled = false;
+        document.getElementById('scantxt').textContent = 'Scanner les annonces';
+        scanning = false;
+      }, 600);
+      return;
+    }
+
     localStorage.setItem('ic_R', JSON.stringify(R));
     setP(100, '✅ ' + R.length + ' annonces trouvées');
     setTimeout(() => {
@@ -601,13 +625,12 @@ async function startScan() {
     }, 600);
   } catch (err) {
     console.error(err);
-    toast('⚠️ ' + err.message.slice(0, 60));
-    R = getFallback(); localStorage.setItem('ic_R', JSON.stringify(R));
-    setTimeout(() => {
-      document.getElementById('pwrap').classList.remove('show');
-      renderAll(); btn.disabled = false;
-      document.getElementById('scantxt').textContent = 'Scanner les annonces'; scanning = false;
-    }, 1000);
+    toast('❌ Erreur : ' + err.message.slice(0, 80), 5000);
+    setP(0, '');
+    document.getElementById('pwrap').classList.remove('show');
+    btn.disabled = false;
+    document.getElementById('scantxt').textContent = 'Scanner les annonces';
+    scanning = false;
   }
 }
 
