@@ -1020,6 +1020,22 @@ header {
   cursor: pointer; transition: all 0.13s; font-family: inherit;
 }
 .btn-contact:hover { background: #bbf7d0; }
+
+/* Navigation vers annonce */
+.nav-btn {
+  background: var(--blue-btn); color: white; border: none; border-radius: 8px;
+  padding: 7px 10px; font-size: 11px; font-weight: 700;
+  cursor: pointer; flex: 1; font-family: inherit; white-space: nowrap;
+}
+.nav-btn:hover:not(:disabled) { background: var(--blue); }
+.nav-btn:disabled { opacity: 0.55; cursor: default; }
+.nav-btn.verifie { background: var(--green); }
+.verified-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: var(--green-lite); color: var(--green);
+  border: 1px solid rgba(22,163,74,0.35); border-radius: 100px;
+  padding: 1px 7px; font-size: 9px; font-weight: 800;
+}
 </style>
 
 </head>
@@ -1425,7 +1441,7 @@ async function callClaudeWithTools(userPrompt, onProgress) {
 
   while (iteration < MAX_ITER) {
     iteration++;
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('/api/claude', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2800,8 +2816,70 @@ function renderCard(a, idx) {
     <div class="acard-foot">
       <button class="cf-btn detail-btn" data-id="${a.id}">📋 Fiche complète</button>
       <button class="cf-btn save save-btn ${isSav?'saved':''}" data-id="${a.id}">${isSav?'⭐ Favori':'☆ Sauvegarder'}</button>
+      <button class="cf-btn nav-btn${a.urlVerifiee?' verifie':''}" data-id="${a.id}" title="${a.urlVerifiee?'URL vérifiée':'Trouver sur la plateforme'}">${a.urlVerifiee?"✅ Voir l'annonce":(a.urlEstExacte?'🔗 Ouvrir':'🔍 Trouver')}</button>
     </div>
   </div>`;
+}
+
+async function naviguerAnnonce(id) {
+  const a = results.find(r => r.id === id);
+  if (!a) return;
+  const btn = document.querySelector(`.nav-btn[data-id="${id}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳…'; }
+
+  try {
+    if (a.urlVerifiee && a.url) {
+      window.open(a.url, '_blank', 'noopener');
+      return;
+    }
+    if (a.urlEstExacte && a.url) {
+      const r = await fetch('/api/scrape', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: a.url }) });
+      const d = await r.json();
+      if (d.success) enrichAnnonce(id, a.url, d);
+      window.open(a.url, '_blank', 'noopener');
+    } else {
+      const srcDef = SOURCES.find(s => s.key === a.source) || SOURCES[0];
+      const findR = await fetch('/api/find', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceKey: a.source || srcDef.key, ville: a.ville, codePostal: a.codePostal, prix: a.prix, surface: a.surface })
+      });
+      const findD = await findR.json();
+      if (!findD.success) {
+        showToast('Annonce introuvable — ouverture de la recherche');
+        const fallback = buildRetrouve ? buildRetrouve(a) : null;
+        window.open(fallback?.urlPlatform || findD.searchUrl || '#', '_blank', 'noopener');
+        return;
+      }
+      const scrR = await fetch('/api/scrape', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: findD.url }) });
+      const scrD = await scrR.json();
+      enrichAnnonce(id, findD.url, scrD.success ? scrD : {});
+      window.open(findD.url, '_blank', 'noopener');
+    }
+  } catch(err) {
+    showToast('Erreur : ' + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; }
+  }
+}
+
+function enrichAnnonce(id, url, data) {
+  const idx = results.findIndex(r => r.id === id);
+  if (idx < 0) return;
+  const merged = { ...results[idx] };
+  for (const [k, v] of Object.entries(data)) {
+    if (v !== null && v !== undefined && v !== '' && k !== 'success' && k !== 'url' && k !== 'pageTitle') {
+      if (Array.isArray(v) && v.length === 0) continue;
+      merged[k] = v;
+    }
+  }
+  merged.url = url;
+  merged.urlEstExacte = true;
+  merged.urlVerifiee = true;
+  merged.scrapedAt = new Date().toISOString();
+  results[idx] = merged;
+  localStorage.setItem('imscanner_results', JSON.stringify(results));
+  renderAll();
 }
 
 function renderAll() {
@@ -2865,6 +2943,10 @@ function renderAll() {
       saveBtn.classList.toggle('saved', saved.includes(id));
       return;
     }
+
+    // 3b. Bouton "Naviguer vers annonce"
+    const navBtn = e.target.closest('.nav-btn');
+    if (navBtn) { e.stopPropagation(); naviguerAnnonce(navBtn.dataset.id); return; }
 
     // 4. Zone lien (card-link-zone) — ne pas ouvrir le modal
     if (e.target.closest('.card-link-zone')) return;
