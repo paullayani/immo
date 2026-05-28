@@ -516,37 +516,46 @@ function setP(pct,msg){
   document.getElementById('ppct').textContent=pct+'%';
 }
 
-// Claude cherche sur LeBonCoin avec web_search, retourne les vraies annonces trouvées.
+// Claude cherche sur LeBonCoin avec web_search — visite chaque annonce pour extraire les vraies infos.
 async function scanViaClaudeWebSearch(ville, budgetMax, surfMin) {
   if (!AK) throw new Error('Clé API Anthropic manquante');
-  const lbcUrl = `https://www.leboncoin.fr/recherche?category=9&locations=${encodeURIComponent(ville)}&price=0-${budgetMax}&real_estate_type=1,2,3${surfMin ? '&square=' + surfMin + '-600' : ''}`;
-  const prompt = `Tu dois trouver de vrais appartements à vendre sur LeBonCoin.
+  const searchUrl = `https://www.leboncoin.fr/recherche?category=9&locations=${encodeURIComponent(ville)}&price=0-${budgetMax}&real_estate_type=1,2,3${surfMin ? '&square=' + surfMin + '-600' : ''}`;
 
-Critères:
-- Ville: ${ville}
-- Budget maximum: ${budgetMax.toLocaleString('fr-FR')} €
-${surfMin ? '- Surface minimum: ' + surfMin + ' m²' : ''}
+  const prompt = `Tu es un assistant immobilier expert. Effectue exactement ces 2 étapes dans l'ordre.
 
-Utilise ta recherche web pour visiter cette page LeBonCoin et lister les annonces:
-${lbcUrl}
+═══ ÉTAPE 1 ═══
+Visite cette page de recherche LeBonCoin :
+${searchUrl}
 
-Pour chaque annonce que tu trouves sur cette page, retourne un objet avec ces champs exacts:
-{
-  "url": "https://www.leboncoin.fr/ad/immobilier/NUMERO_EXACT",
-  "titre": "titre exact de l'annonce",
-  "prix": 189000,
-  "surf": 35,
-  "pieces": 2,
-  "cp": "93100",
-  "quartier": "nom du quartier ou de la ville"
-}
+Relève les URLs des 6 premières annonces d'appartements (format : https://www.leboncoin.fr/ad/immobilier/NUMERO).
 
-Règles absolues:
-1. Retourne UNIQUEMENT un tableau JSON valide, rien d'autre — pas de texte avant ni après
-2. Chaque url DOIT être au format exact: https://www.leboncoin.fr/ad/immobilier/NUMERO (avec le vrai numéro d'annonce à 10 chiffres)
-3. N'invente JAMAIS un numéro — utilise uniquement les numéros que tu as vus sur la page
-4. Si tu ne trouves aucune annonce, retourne exactement: []
-5. Maximum 15 annonces`;
+═══ ÉTAPE 2 ═══
+Pour CHACUNE des 6 annonces, visite sa page individuelle et extrais ces informations exactes depuis la page :
+- url : URL exacte de l'annonce (https://www.leboncoin.fr/ad/immobilier/NUMERO_EXACT)
+- titre : titre exact tel qu'affiché sur la page
+- prix : prix en euros, nombre entier (ex : 185000)
+- surf : surface en m², nombre entier (ex : 38)
+- pieces : nombre de pièces, nombre entier
+- cp : code postal (ex : "93200")
+- quartier : nom du quartier ou de la ville
+- desc : les 200 premiers caractères de la description de l'annonce
+- agence : nom exact de l'agence immobilière, ou "Particulier" si c'est un particulier
+- phone : numéro de téléphone de l'agence ou du vendeur tel qu'affiché sur la page (ex : "01 23 45 67 89"), ou "" si non visible
+- ref : référence de l'annonce telle qu'affichée sur la page (ex : "REF-12345"), ou "" si non visible
+- photo : URL complète de la première photo de l'annonce (commence par https://), ou "" si non disponible
+
+═══ RÉSULTAT ═══
+Retourne UNIQUEMENT un tableau JSON valide avec ces objets. Aucun texte avant, aucun texte après.
+
+RÈGLES ABSOLUES :
+1. N'invente JAMAIS un numéro d'annonce, un prix, un téléphone ou une URL
+2. Utilise uniquement les données réellement vues sur les pages visitées
+3. Si une annonce n'est pas accessible, ne la retourne pas
+4. Si aucune annonce trouvée : []
+5. Vérifie que chaque URL visitée correspond bien à une vraie annonce LeBonCoin
+
+Exemple de format attendu :
+[{"url":"https://www.leboncoin.fr/ad/immobilier/2456789012","titre":"Appartement 2 pièces 38m²","prix":185000,"surf":38,"pieces":2,"cp":"93200","quartier":"Saint-Denis","desc":"Bel appartement lumineux...","agence":"Orpi Saint-Denis","phone":"01 48 09 45 67","ref":"LBC-2456789012","photo":"https://img.leboncoin.fr/api/v1/lbcpb1/..."}]`;
 
   const messages = [{ role: 'user', content: prompt }];
   const headers = {
@@ -556,14 +565,13 @@ Règles absolues:
     'anthropic-dangerous-direct-browser-access': 'true',
   };
 
-  // Loop to handle tool_use rounds (web_search may require multi-turn)
-  for (let round = 0; round < 5; round++) {
+  for (let round = 0; round < 15; round++) {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 4096,
+        model: 'claude-opus-4-7',
+        max_tokens: 8192,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages,
       })
@@ -575,20 +583,28 @@ Règles absolues:
     const data = await resp.json();
 
     if (data.stop_reason === 'end_turn') {
-      // Extract JSON array from Claude's text response
       const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-      const m = text.match(/\[[\s\S]*?\]/);
+      const m = text.match(/\[[\s\S]*\]/);
       if (!m) return [];
-      const items = JSON.parse(m[0]);
+      let items;
+      try { items = JSON.parse(m[0]); } catch { return []; }
       return items
         .filter(a => a.url && /leboncoin\.fr\/ad\/immobilier\/\d+/.test(a.url) && a.prix > 0)
         .map(a => ({
           source: 'LeBonCoin', sk: 'leboncoin', ville,
-          titre: a.titre || '', type: 'Appartement', desc: '',
-          prix: parseInt(a.prix) || 0, surf: parseInt(a.surf) || 0,
-          pieces: parseInt(a.pieces) || 0, dpe: '', agence: '',
-          cp: a.cp || '', quartier: a.quartier || '',
-          photo: '', photos: [],
+          titre: a.titre || '', type: 'Appartement',
+          desc: a.desc || '',
+          prix: parseInt(a.prix) || 0,
+          surf: parseInt(a.surf) || 0,
+          pieces: parseInt(a.pieces) || 0,
+          dpe: '',
+          agence: (a.agence && a.agence !== 'Particulier') ? a.agence : '',
+          phone: a.phone || '',
+          ref: a.ref || '',
+          cp: a.cp || '',
+          quartier: a.quartier || '',
+          photo: a.photo || '',
+          photos: a.photo ? [a.photo] : [],
           url: a.url,
           urlEstExacte: true,
           annonceId: a.url.match(/\/(\d+)$/)?.[1] || '',
@@ -596,8 +612,6 @@ Règles absolues:
     }
 
     if (data.stop_reason === 'tool_use') {
-      // Claude used web_search — continue conversation with empty tool results
-      // (Anthropic executes web_search server-side; we just pass back acknowledgement)
       messages.push({ role: 'assistant', content: data.content });
       const toolResults = (data.content || [])
         .filter(b => b.type === 'tool_use')
@@ -811,14 +825,23 @@ function mkCard(a,idx){
       ${aid?`<div class="ref-tag">Réf ${aid}</div>`:''}
     </div>`;
   }else if(hasDirect && isLBC){
-    // Cas 1b — LeBonCoin : lien direct vers la vraie annonce avec photos
+    // Cas 1b — LeBonCoin : lien direct + infos contact extraites
+    const phoneHtml = a.phone
+      ? `<div style="display:flex;align-items:center;gap:5px;margin:5px 0">
+           <a href="tel:${a.phone.replace(/\s/g,'')}" class="blbc" style="flex:1;padding:7px 10px;font-size:12px" onclick="event.stopPropagation()">📞 ${a.phone}</a>
+           <button style="padding:7px 9px;background:var(--bl);border:1.5px solid var(--bb);border-radius:6px;cursor:pointer;font-size:12px" onclick="event.stopPropagation();navigator.clipboard.writeText('${a.phone.replace(/'/g,"\\'")}').then(()=>toast('📞 Copié !'))">📋</button>
+         </div>`
+      : '';
+    const agHtml = a.agence ? `<div style="font-size:10px;color:var(--ink3);margin:2px 0">🏢 ${a.agence}</div>` : '';
     czone=`<div class="cz-lbc">
-      <div class="cz-lbl b">✓ LeBonCoin — Lien direct</div>
-      <div class="lbc-expl">Cliquez → <strong>vraie annonce avec toutes les photos</strong> — contactez via le bouton "Contacter"</div>
+      <div class="cz-lbl b">✓ LeBonCoin — Annonce vérifiée</div>
+      ${agHtml}
+      ${phoneHtml}
+      ${!a.phone?'<div class="lbc-expl">Cliquez → <strong>vraie annonce avec toutes les photos</strong></div>':''}
       <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="blbc" onclick="event.stopPropagation()">
         🔗 Voir l'annonce LeBonCoin
       </a>
-      ${a.annonceId?`<div class="ref-tag">Réf ${a.annonceId}</div>`:''}
+      ${a.ref?`<div class="ref-tag">Réf ${a.ref}</div>`:a.annonceId?`<div class="ref-tag">Réf ${a.annonceId}</div>`:''}
     </div>`;
   }else if(hasAg){
     // Cas 2 — Agence identifiée : nom connu → on peut chercher le numéro
@@ -908,13 +931,20 @@ function openM(id){
   }else if(a.urlEstExacte&&a.url){
     // LeBonCoin ou autre source avec lien direct
     const srcName=a.source||'LeBonCoin';
-    cHtml=`<div class="mc" style="background:var(--bl);border:1.5px solid var(--bb)">
-      <div class="mc-title b">✓ ${srcName} — Lien direct vers l'annonce</div>
-      <div class="mc-expl">
-        Cliquez → <strong>vraie annonce avec toutes les photos</strong>.<br>
-        Sur la page : bouton "Contacter" pour joindre le vendeur.
+    const mPhoneHtml = a.phone ? `<div style="margin:10px 0;padding:10px 12px;background:rgba(29,78,216,0.08);border:1.5px solid var(--bb);border-radius:8px">
+      <div style="font-size:10px;color:var(--ink3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Téléphone extrait de l'annonce</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <a href="tel:${a.phone.replace(/\s/g,'')}" style="font-size:18px;font-weight:800;color:#1d4ed8;text-decoration:none">📞 ${a.phone}</a>
+        <button class="mba ghost" style="padding:5px 9px;font-size:11px" onclick="navigator.clipboard.writeText('${a.phone.replace(/'/g,"\\'")}').then(()=>toast('📞 Copié !'))">📋</button>
       </div>
-      ${a.annonceId?`<div class="ref-tag" style="margin-bottom:9px;display:inline-block">Réf : ${a.annonceId}</div>`:''}
+      ${a.agence?`<div style="font-size:11px;color:var(--ink3);margin-top:4px">🏢 ${a.agence}</div>`:''}
+    </div>` : (a.agence ? `<div style="margin:8px 0;font-size:13px"><strong>🏢 Agence :</strong> ${a.agence}</div>` : '');
+    const mRefHtml = (a.ref||a.annonceId) ? `<div class="ref-tag" style="margin-bottom:9px;display:inline-block">Réf : ${a.ref||a.annonceId}</div>` : '';
+    cHtml=`<div class="mc" style="background:var(--bl);border:1.5px solid var(--bb)">
+      <div class="mc-title b">✓ ${srcName} — Annonce vérifiée</div>
+      ${mPhoneHtml}
+      ${!a.phone?`<div class="mc-expl">Cliquez → <strong>vraie annonce avec toutes les photos</strong>.<br>Sur la page : bouton "Contacter" pour joindre le vendeur.</div>`:''}
+      ${mRefHtml}
       <div class="mac">
         <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba" style="background:var(--b);color:#fff">🔗 Ouvrir l'annonce ${srcName}</a>
         <button class="mba ghost" onclick="navigator.clipboard.writeText('${a.url}').then(()=>toast('🔗 Lien copié !'))">📋 Copier le lien</button>
@@ -963,7 +993,8 @@ function openM(id){
     ['DPE',a.dpe?`<span style="font-weight:700;color:${DPE_C[a.dpe]||'inherit'}">${a.dpe}</span>`:'—'],
     ['Loyer estimé',(a.loyer||0).toLocaleString('fr-FR')+' €/mois'],
     ['Source/Agence',`${a.source||'—'}${a.agence?' · '+a.agence:''}`],
-    ['Référence',a.annonceId||'—'],
+    ['Téléphone',a.phone?`<strong style="color:#1d4ed8">📞 ${a.phone}</strong>`:'—'],
+    ['Référence',a.ref||a.annonceId||'—'],
   ].filter(([,v])=>v&&v!=='—');
   se('m-data').innerHTML=`<table class="dtbl">${rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>`;
 
