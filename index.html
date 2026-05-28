@@ -105,12 +105,11 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
 .card{background:var(--white);border:1.5px solid var(--border);border-radius:11px;overflow:hidden;cursor:pointer;transition:border-color .13s,box-shadow .13s,transform .13s;animation:rise .25s ease both}
 .card:hover{border-color:var(--ink3);box-shadow:var(--shl);transform:translateY(-2px)}
 .card.top{border-left:3px solid var(--gm)}
-.card.has-link{border-left:3px solid var(--gm)}
+.card.tel{border-left:3px solid var(--gm)}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-/* Card photo */
-.cimg{width:100%;height:150px;background:var(--bg2) center/cover no-repeat;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:40px;border-bottom:1px solid var(--bg2)}
-.cimg.has-photo{font-size:0}
+/* Card image */
+.cimg{width:100%;height:150px;background:var(--bg2) center/cover no-repeat;flex-shrink:0;border-bottom:1px solid var(--bg2);display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:40px;letter-spacing:-1px}
 
 /* Card head */
 .chead{padding:11px 13px 9px;border-bottom:1px solid var(--bg2)}
@@ -144,23 +143,20 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
 .cdv{font-size:12px;font-weight:700;color:var(--ink)}
 .cds{font-size:9px;color:var(--ink3)}
 
-/* ═══ CONTACT ZONE ═══ */
+/* ═══ CONTACT ZONE — La zone centrale ═══ */
 .czone{padding:11px 13px}
 
+/* Cas 1 — PAP lien direct (seule vraie solution sans compte) */
 .cz-pap{background:var(--gl);border:1.5px solid var(--gb);border-radius:8px;padding:9px 11px}
-.cz-lbc{background:var(--bl);border:1.5px solid var(--bb);border-radius:8px;padding:9px 11px}
 .cz-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
 .cz-lbl.g{color:var(--g)}.cz-lbl.o{color:var(--o)}.cz-lbl.b{color:var(--b)}.cz-lbl.grey{color:var(--ink3)}
 .pap-expl{font-size:11px;color:var(--g);font-weight:500;margin-bottom:7px;line-height:1.35}
 .pap-expl strong{font-weight:700}
-.lbc-expl{font-size:11px;color:var(--b);font-weight:500;margin-bottom:7px;line-height:1.35}
-.lbc-expl strong{font-weight:700}
 .bpap{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:8px;background:var(--gm);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);text-decoration:none;transition:background .12s}
 .bpap:hover{background:var(--g)}
-.blbc{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:8px;background:var(--b);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);text-decoration:none;transition:background .12s}
-.blbc:hover{background:#1e40af}
 .ref-tag{font-family:monospace;font-size:9px;color:var(--ink3);background:var(--bg2);border-radius:3px;padding:1px 5px;display:inline-block;margin-top:4px}
 
+/* Cas 2 — Agence identifiée */
 .cz-ag{background:var(--ol);border:1.5px solid var(--ob);border-radius:8px;padding:9px 11px}
 .ag-nm{font-family:var(--fh);font-size:14px;font-weight:700;color:var(--ink);margin-bottom:6px}
 .ag-btns{display:flex;gap:5px}
@@ -169,6 +165,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
 .bag.maps{background:var(--gm)}
 .bag.maps:hover{background:var(--g)}
 
+/* Cas 3 — Aucun contact disponible */
 .cz-no{display:flex;align-items:center;justify-content:space-between;gap:7px}
 .cz-no-txt{font-size:10px;color:var(--ink3);line-height:1.4}
 .bno{display:flex;align-items:center;gap:4px;padding:7px 10px;background:var(--bg2);border:1.5px solid var(--border);border-radius:6px;font-size:10px;font-weight:600;color:var(--ink2);cursor:pointer;font-family:var(--fb);text-decoration:none;white-space:nowrap;transition:all .12s;flex-shrink:0}
@@ -217,18 +214,13 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
 .ms:last-child{border-bottom:none}
 .msl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink3);margin-bottom:9px}
 
-/* Modal photos */
-.mphotos{display:flex;gap:6px;overflow-x:auto;margin-bottom:9px;padding-bottom:3px}
-.mphotos img{height:90px;width:auto;border-radius:5px;flex-shrink:0;object-fit:cover}
-
 /* Modal contact */
 .mc{padding:12px 14px;border-radius:9px}
 .mc.pap{background:var(--gl);border:1.5px solid var(--gb)}
-.mc.lbc{background:var(--bl);border:1.5px solid var(--bb)}
 .mc.ag{background:var(--ol);border:1.5px solid var(--ob)}
 .mc.no{background:var(--bg);border:1.5px solid var(--border)}
 .mc-title{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
-.mc-title.g{color:var(--g)}.mc-title.b{color:var(--b)}.mc-title.o{color:var(--o)}.mc-title.grey{color:var(--ink3)}
+.mc-title.g{color:var(--g)}.mc-title.o{color:var(--o)}.mc-title.grey{color:var(--ink3)}
 .mc-expl{font-size:12px;color:var(--ink2);line-height:1.5;margin-bottom:10px}
 .mc-expl strong{color:var(--ink);font-weight:700}
 .mc-ag-big{font-family:var(--fh);font-size:16px;font-weight:700;color:var(--ink);margin-bottom:9px}
@@ -269,7 +261,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
 .mfoot{padding:11px 18px;border-top:1px solid var(--bg2);display:flex;gap:7px;background:var(--bg)}
 .mfb{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);border:none;display:flex;align-items:center;justify-content:center;gap:4px;text-decoration:none;transition:opacity .12s}
 .mfb:hover{opacity:.85}
-.mfb.p{background:var(--ink);color:#fff}.mfb.g{background:var(--gm);color:#fff}.mfb.bbl{background:var(--b);color:#fff}
+.mfb.p{background:var(--ink);color:#fff}.mfb.g{background:var(--gm);color:#fff}
 .mfb.s{background:var(--bg2);color:var(--ink2);flex:.55}
 
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;padding:8px 18px;border-radius:100px;font-size:12px;font-weight:500;opacity:0;transition:all .18s;pointer-events:none;z-index:999;white-space:nowrap}
@@ -334,8 +326,9 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
     </div>
 
     <div class="infonote">
-      <strong>Scan réel :</strong><br>
-      Playwright navigue sur LeBonCoin et PAP.fr et extrait les vraies annonces — vraies photos, vrais prix, vrais liens.
+      <strong>Comment ça marche :</strong><br>
+      Scan PAP prioritaire → lien direct vers la fiche → numéro visible sur la page.<br>
+      Agences locales → numéros garantis via Google Places ou mode démo.
     </div>
 
     <button class="bscan" id="bscan" onclick="startScan()">🔍 <span id="scantxt">Scanner les annonces</span></button>
@@ -356,20 +349,20 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
         <div class="sdv"></div>
         <div class="si"><div class="sn g" id="sg">0</div><div class="sl">Rentables</div></div>
         <div class="sdv"></div>
-        <div class="si"><div class="sn l" id="sl">0</div><div class="sl">🔗 Liens directs</div></div>
+        <div class="si"><div class="sn l" id="sl">0</div><div class="sl">🔗 PAP liens</div></div>
         <div class="sdv"></div>
         <div class="si"><div class="sn" id="sb2">—</div><div class="sl">Meilleure renta</div></div>
       </div>
       <div class="frow" id="frow">
         <button class="fbtn on" onclick="setF('all',this)">Tous</button>
-        <button class="fbtn" onclick="setF('pap',this)">📋 PAP direct</button>
+        <button class="fbtn" onclick="setF('pap',this)">🔗 PAP direct</button>
         <button class="fbtn" onclick="setF('good',this)">✅ Rentables</button>
         <button class="fbtn" onclick="setF('saved',this)">⭐ Favoris</button>
         <select class="ssel" onchange="setS(this.value)">
           <option value="renta">Tri : Rentabilité</option>
           <option value="prix">Tri : Prix ↑</option>
           <option value="cf">Tri : Cashflow</option>
-          <option value="contact">Tri : Lien direct d'abord</option>
+          <option value="contact">Tri : Contact d'abord</option>
         </select>
       </div>
       <div class="cars">
@@ -378,7 +371,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
           <div class="empt-h">Prêt à scanner</div>
           <div class="empt-p">
             Ajoutez vos villes cibles, configurez votre budget et lancez le scan.<br><br>
-            <strong>Scan réel :</strong> Playwright navigue sur LeBonCoin et PAP.fr et extrait les vraies annonces — vraies photos, vrais prix, vrais liens.<br><br>
+            <strong>PAP.fr est scanné en priorité.</strong> Chaque annonce PAP vous donne un lien direct vers la fiche — le numéro du propriétaire est visible sur la page, sans inscription.<br><br>
             Pour les agences : utilisez l'onglet <strong>📞 Agences</strong>.
           </div>
         </div>
@@ -414,10 +407,12 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
       <div class="mloc" id="m-loc"></div>
     </div>
     <div class="mbdy">
+      <!-- Contact — PREMIER -->
       <div class="ms">
         <div class="msl">Contact</div>
         <div id="m-ct"></div>
       </div>
+      <!-- Rentabilité -->
       <div class="ms">
         <div class="msl">Rentabilité & Négociation</div>
         <div class="sg">
@@ -435,15 +430,14 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
           </div>
         </div>
       </div>
-      <div class="ms" id="m-ph" style="display:none">
-        <div class="msl">Photos</div>
-        <div class="mphotos" id="m-photos"></div>
-      </div>
+      <!-- Données bien -->
       <div class="ms">
         <div class="msl">Données du bien</div>
         <div id="m-data"></div>
       </div>
+      <!-- Description -->
       <div class="ms" id="m-ds"><div class="msl">Description</div><div class="dtxt" id="m-desc"></div></div>
+      <!-- Accès -->
       <div class="ms"><div class="msl">Accès à l'annonce</div><div id="m-acc"></div></div>
     </div>
     <div class="mfoot" id="m-foot"></div>
@@ -462,6 +456,7 @@ let GK=localStorage.getItem('ic_GK')||'';
 let scanning=false,curF='all',curS='renta',activeA=null;
 const COLS={g:'var(--gm)',o:'var(--o)',r:'var(--r)'};
 const DPE_C={A:'var(--gm)',B:'var(--gm)',C:'#65a30d',D:'var(--o)',E:'#ea580c',F:'var(--r)',G:'var(--r)'};
+const DOM={pap:'pap.fr',leboncoin:'leboncoin.fr',seloger:'seloger.com',bienici:'bienici.com'};
 
 // ══ INIT ════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',()=>{
@@ -476,6 +471,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();});
 const toast=(m,d=2500)=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._);t._=setTimeout(()=>t.classList.remove('show'),d);};
 const gn=(id,d=0)=>Number(document.getElementById(id)?.value)||d;
 const T=()=>gn('threshold',8),BU=()=>gn('budget',400000),SM=()=>gn('smin',0),NO=()=>gn('c-notaire',8),NE=()=>gn('c-nego',0);
+const TY=()=>[...document.querySelectorAll('.tgl.on')].map(t=>t.dataset.t);
 
 function calcR(prix,loyer,not){
   const pt=prix*(1+not/100),la=loyer*12,rb=prix>0?(la/prix)*100:0,rn=pt>0?(la/pt)*100:0;
@@ -483,14 +479,10 @@ function calcR(prix,loyer,not){
 }
 function cc(r){const t=T();return r>=t?'g':r>=t*.75?'o':'r';}
 function vd(r){const c=cc(r);return c==='g'?'✅ Excellent':c==='o'?'⚠️ Limite':'❌ Insuffisant';}
-function estL(v,s){
-  const vl=(v||'').toLowerCase();
-  let m=vl.includes('paris')?30
-    :['vincennes','boulogne','levallois','neuilly','issy','puteaux'].some(x=>vl.includes(x))?27
-    :['saint-denis','aubervilliers','pantin','ivry','vitry','montreuil','bobigny','noisy','creteil'].some(x=>vl.includes(x))?19
-    :16;
-  return Math.round(s*m);
-}
+function estL(v,s){const vl=(v||'').toLowerCase();let m=vl.includes('paris')?30:['vincennes','boulogne','levallois','neuilly','issy','puteaux'].some(x=>vl.includes(x))?27:['saint-denis','aubervilliers','pantin','ivry','vitry','montreuil','bobigny','noisy','creteil'].some(x=>vl.includes(x))?19:16;return Math.round(s*m);}
+
+function buildGQ(a){const d=DOM[a.sk]||'leboncoin.fr';const tn=(a.type||'appartement').toLowerCase().replace('studio / t1','studio');return['site:'+d,tn,a.cp||a.ville,a.surf?a.surf+'m2':'',a.prix?String(Math.round(a.prix)):''].filter(Boolean).join(' ');}
+function gUrl(q){return'https://www.google.fr/search?q='+encodeURIComponent(q);}
 function mapsUrl(v){return'https://www.google.fr/maps/search/agence+immobili%C3%A8re+'+encodeURIComponent(v);}
 
 // ══ VILLES ══════════════════════════════════════════════════════════
@@ -516,50 +508,64 @@ function setP(pct,msg){
   document.getElementById('ppct').textContent=pct+'%';
 }
 
-// ══ SCAN — Playwright réel, pas d'IA pour trouver les annonces ══════
-async function startScan(){
-  if(scanning)return;
-  if(!VV.length){toast('⚠️ Ajoutez au moins une ville');return;}
-  scanning=true;
-  const btn=document.getElementById('bscan');
-  btn.disabled=true;document.getElementById('scantxt').textContent='Scan en cours…';
+// ══ SCAN ════════════════════════════════════════════════════════════
+async function startScan() {
+  if (scanning) return;
+  if (!VV.length) { toast('⚠️ Ajoutez au moins une ville'); return; }
+  scanning = true;
+  const btn = document.getElementById('bscan');
+  btn.disabled = true; document.getElementById('scantxt').textContent = 'Scan en cours…';
   document.getElementById('pwrap').classList.add('show');
-  document.getElementById('empt').style.display='none';
-  document.getElementById('cgrid').innerHTML='';
-  const not=NO(),ne=NE(),thr=T();
-  try{
-    setP(20,'Connexion aux plateformes (LeBonCoin, PAP)…');
-    const resp=await fetch('/api/scan',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({villes:VV,budgetMax:BU(),surfMin:SM()}),
+  document.getElementById('empt').style.display = 'none';
+  document.getElementById('cgrid').innerHTML = '';
+  const not = NO(), ne = NE(), thr = T();
+  try {
+    setP(20, 'Connexion aux plateformes…');
+    const resp = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ villes: VV, budgetMax: BU(), surfMin: SM() }),
     });
-    if(!resp.ok)throw new Error('Erreur serveur '+resp.status);
-    setP(80,'Traitement des annonces…');
-    const data=await resp.json();
-    if(!data.success)throw new Error(data.error||'Scan échoué');
-    const seen=new Set();
-    R=(data.listings||[])
-      .filter(l=>{const k=l.url||(l.titre+'|'+l.prix);if(seen.has(k))return false;seen.add(k);return l.prix&&l.prix>0;})
-      .map(l=>{
-        const loyer=l.loyerEstime||estL(l.ville||'',l.surface||0);
-        const pN=l.prix*(1-ne/100),calc=calcR(pN,loyer,not);
-        return{id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),...l,loyer,...calc,thr,not,ne,createdAt:new Date().toISOString()};
+    if (!resp.ok) throw new Error('Erreur serveur ' + resp.status);
+    setP(75, 'Analyse des résultats…');
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error || 'Scan échoué');
+    const seen = new Set();
+    R = (data.listings || [])
+      .filter(l => {
+        const k = l.url || (l.titre + '|' + l.prix);
+        if (seen.has(k)) return false;
+        seen.add(k); return l.prix && l.prix > 0;
       })
-      .sort((a,b)=>b.rn-a.rn).slice(0,300);
-    if(!R.length){R=getFallback();toast('ℹ️ Aucun résultat — mode démonstration');}
-    localStorage.setItem('ic_R',JSON.stringify(R));
-    setP(100,'✅ '+R.length+' annonces trouvées');
-    setTimeout(()=>{document.getElementById('pwrap').classList.remove('show');renderAll();btn.disabled=false;document.getElementById('scantxt').textContent='Scanner les annonces';scanning=false;},600);
-  }catch(err){
+      .map(l => {
+        const loyer = l.loyerEstime || estL(l.ville || '', l.surface || 0);
+        const pN = l.prix * (1 - ne / 100);
+        const calc = calcR(pN, loyer, not);
+        return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...l, loyer, ...calc, thr, not, ne, createdAt: new Date().toISOString() };
+      })
+      .sort((a, b) => b.rn - a.rn).slice(0, 300);
+    if (!R.length) { R = getFallback(); toast('ℹ️ Aucun résultat — mode démonstration'); }
+    localStorage.setItem('ic_R', JSON.stringify(R));
+    setP(100, '✅ ' + R.length + ' annonces trouvées');
+    setTimeout(() => {
+      document.getElementById('pwrap').classList.remove('show');
+      renderAll(); btn.disabled = false;
+      document.getElementById('scantxt').textContent = 'Scanner les annonces'; scanning = false;
+    }, 600);
+  } catch (err) {
     console.error(err);
-    toast('⚠️ '+err.message.slice(0,60));
-    R=getFallback();localStorage.setItem('ic_R',JSON.stringify(R));
-    setTimeout(()=>{document.getElementById('pwrap').classList.remove('show');renderAll();btn.disabled=false;document.getElementById('scantxt').textContent='Scanner les annonces';scanning=false;},1000);
+    toast('⚠️ ' + err.message.slice(0, 60));
+    R = getFallback(); localStorage.setItem('ic_R', JSON.stringify(R));
+    setTimeout(() => {
+      document.getElementById('pwrap').classList.remove('show');
+      renderAll(); btn.disabled = false;
+      document.getElementById('scantxt').textContent = 'Scanner les annonces'; scanning = false;
+    }, 1000);
   }
 }
 
-// ══ FALLBACK démo ═══════════════════════════════════════════════════
+// ══ FALLBACK ════════════════════════════════════════════════════════
+// Données réalistes pour démonstration — montrent le comportement réel
 function getFallback(){
   const not=NO(),ne=NE(),thr=T(),bdgt=BU(),sm=SM();
   const pool=[
@@ -577,7 +583,7 @@ function getFallback(){
      url:'https://www.pap.fr/annonce/vente-appartement-saint-denis-93200-g49345678',ex:true},
     {v:'Saint-Denis',cp:'93200',q:'Plaine Saint-Denis',s:38,p:2,pr:118000,l:850,t:'Appartement',sk:'leboncoin',ag:'',dpe:'E',
      desc:"Appartement 2 pièces à rénover. Bon potentiel dans secteur en mutation. Proche Métro 12 (extension). Prix attractif.",
-     url:'https://www.leboncoin.fr/ad/immobilier/2340000001',ex:true},
+     url:'',ex:false},
     {v:'Montreuil',cp:'93100',q:'Croix de Chavaux',s:38,p:2,pr:175000,l:950,t:'Appartement',sk:'pap',ag:'',dpe:'C',
      desc:"Appartement 2 pièces entièrement rénové. Balcon de 6m², chambre avec placard, salle de bain neuve. Métro 9 (Croix de Chavaux) à 200m. Excellent état.",
      url:'https://www.pap.fr/annonce/vente-appartement-montreuil-93100-g50456789',ex:true},
@@ -611,10 +617,9 @@ function getFallback(){
       titre:a.t+' '+a.s+'m² '+a.q,type:a.t,
       source:a.sk==='pap'?'PAP':a.sk==='seloger'?'SeLoger':a.sk==='leboncoin'?'LeBonCoin':"Bien'ici",
       sk:a.sk,url:a.url||'',urlEstExacte:a.ex,
-      annonceId:a.url?(a.url.match(/g\d+/)?.[0]||a.url.match(/\/(\d+)\/?$/)?.[1]||''):'',
-      ville:a.v,cp:a.cp,quartier:a.q,surface:a.s,pieces:a.p,prix:a.pr,
-      loyer:a.l,dpe:a.dpe,desc:a.desc,agence:a.ag,
-      photos:[],photo:'',
+      annonceId:a.url?(a.url.match(/g\d+/)?.[0]||''):'',
+      ville:a.v,cp:a.cp,quartier:a.q,surf:a.s,pieces:a.p,prix:a.pr,
+      loyer:a.l,dpe:a.dpe,desc:a.desc,agence:a.ag,pf:[],pm:[],
       ...calc,thr,not,ne,createdAt:new Date().toISOString()};
   }).sort((a,b)=>b.rn-a.rn);
 }
@@ -625,7 +630,10 @@ async function findAgences(){
   switchTab('agences');
   document.getElementById('agsub').textContent='Recherche en cours…';
   document.getElementById('aggrid').innerHTML='<div class="empt" style="grid-column:1/-1"><div style="font-size:32px">⏳</div><div class="empt-p">Récupération des agences…</div></div>';
-  if(!GK){AG=demoAG();renderAG();toast('ℹ️ Mode démo — ajoutez votre clé Google Places pour de vraies données');return;}
+
+  if(!GK){
+    AG=demoAG();renderAG();toast('ℹ️ Mode démo — ajoutez votre clé Google Places pour de vraies données');return;
+  }
   let all=[];
   for(const v of VV){
     try{
@@ -647,12 +655,12 @@ function demoAG(){return[
   {id:'d2',name:'Laforêt Immobilier Paris 20e',addr:'85 bd de Ménilmontant, Paris 20e',phone:'01 43 66 89 00',rating:4.0,ville:'Paris'},
   {id:'d3',name:'Orpi Guy Hoquet Belleville',addr:'155 rue de Belleville, Paris 20e',phone:'01 42 08 55 55',rating:3.8,ville:'Paris'},
   {id:'d4',name:'Foncia Paris 18e',addr:'3 pl du Dr Félix Lobligeois, Paris 18e',phone:'01 44 92 19 00',rating:3.9,ville:'Paris'},
-  {id:'d5',name:'Orpi Saint-Denis Centre',addr:"12 rue de la Légion d'Honneur, Saint-Denis",phone:'01 48 09 45 67',rating:4.1,ville:'Saint-Denis'},
+  {id:'d5',name:'Orpi Saint-Denis Centre',addr:'12 rue de la Légion d\'Honneur, Saint-Denis',phone:'01 48 09 45 67',rating:4.1,ville:'Saint-Denis'},
   {id:'d6',name:'Foncia Saint-Denis',addr:'28 av du Président Wilson, Saint-Denis',phone:'01 48 22 70 00',rating:3.7,ville:'Saint-Denis'},
   {id:'d7',name:'Era Immobilier Montreuil',addr:'42 rue de la Fraternité, Montreuil',phone:'01 48 58 32 10',rating:4.3,ville:'Montreuil'},
   {id:'d8',name:'Square Habitat Montreuil',addr:'1 pl Jean Jaurès, Montreuil',phone:'01 48 70 16 16',rating:4.0,ville:'Montreuil'},
   {id:'d9',name:'Nexity Vincennes',addr:'6 rue de Fontenay, Vincennes',phone:'01 43 98 40 40',rating:4.1,ville:'Vincennes'},
-  {id:'d10',name:'Guy Hoquet Ivry',addr:"6 rue de l'Abbé Grégoire, Ivry-sur-Seine",phone:'01 46 72 12 34',rating:3.9,ville:'Ivry-sur-Seine'},
+  {id:'d10',name:'Guy Hoquet Ivry',addr:'6 rue de l\'Abbé Grégoire, Ivry-sur-Seine',phone:'01 46 72 12 34',rating:3.9,ville:'Ivry-sur-Seine'},
 ];}
 
 function renderAG(){
@@ -684,25 +692,29 @@ function renderAll(){
   document.getElementById('empt').style.display=R.length?'none':'flex';
   document.getElementById('cgrid').style.display=R.length?'grid':'none';
   if(!R.length)return;
+
   const good=R.filter(r=>r.rn>=t).length;
-  const wlink=R.filter(r=>r.urlEstExacte).length;
+  const wpap=R.filter(r=>r.urlEstExacte).length;
   const best=Math.max(...R.map(r=>r.rn));
   document.getElementById('sbar').classList.add('show');
   document.getElementById('frow').classList.add('show');
   document.getElementById('sn').textContent=R.length;
   document.getElementById('sg').textContent=good;
-  document.getElementById('sl').textContent=wlink;
+  document.getElementById('sl').textContent=wpap;
   document.getElementById('sb2').textContent=best.toFixed(1)+'%';
+
   let list=[...R];
-  if(curF==='pap')list=list.filter(r=>r.sk==='pap'&&r.urlEstExacte);
+  if(curF==='pap')list=list.filter(r=>r.urlEstExacte);
   if(curF==='good')list=list.filter(r=>r.rn>=t);
   if(curF==='saved')list=list.filter(r=>SAV.includes(r.id));
   if(curS==='prix')list.sort((a,b)=>a.prix-b.prix);
   if(curS==='cf')list.sort((a,b)=>b.cf-a.cf);
   if(curS==='contact')list.sort((a,b)=>{const sa=a.urlEstExacte?2:a.agence?1:0,sb=b.urlEstExacte?2:b.agence?1:0;return sb-sa;});
+
   const g=document.getElementById('cgrid');
   g.innerHTML=list.length?list.map((a,i)=>mkCard(a,i)).join(''):
     '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--ink3)">Aucun résultat.</div>';
+
   g.onclick=e=>{
     const card=e.target.closest('.card');if(!card)return;
     const id=card.dataset.id;
@@ -718,62 +730,47 @@ function mkCard(a,idx){
   const pN=a.prix*(1-ne/100),calc=calcR(pN,a.loyer,not),c=cc(calc.rn);
   const bw=Math.min((calc.rn/(T()*1.6))*100,100),top=calc.rn>=T(),cfP=calc.cf>=0;
   const isSav=SAV.includes(a.id),dCls=a.dpe?'d'+a.dpe:'';
-  const hasLink=!!(a.urlEstExacte&&a.url);
-  const isPAP=a.sk==='pap';
-  const isLBC=a.sk==='leboncoin';
+  const hasPAP=a.urlEstExacte&&a.url,hasAg=!!a.agence;
 
-  // Photo
-  const photoStyle=a.photo?`style="background-image:url('${a.photo.replace(/'/g,"\\'")}')"`:'' ;
-  const photoHtml=`<div class="cimg${a.photo?' has-photo':''}" ${photoStyle}>${a.photo?'':isPAP?'📋':'🏠'}</div>`;
+  const photoHtml = a.photo
+    ? `<div class="cimg" style="background-image:url('${a.photo.replace(/'/g,"\\'")}')"></div>`
+    : `<div class="cimg">${a.sk==='pap'?'📋':'🏠'}</div>`;
 
-  // ZONE CONTACT
+  // ZONE CONTACT — logique simplifiée et honnête
   let czone;
-  if(hasLink&&isPAP){
+  if(hasPAP){
+    // Cas 1 — PAP avec URL directe : c'est la vraie solution
     const aid=a.annonceId||a.url.match(/g\d+/)?.[0]||'';
     czone=`<div class="cz-pap">
-      <div class="cz-lbl g">✓ PAP particulier — lien direct</div>
+      <div class="cz-lbl g">✓ PAP — Lien direct vers la fiche</div>
       <div class="pap-expl">Cliquez → fiche s'ouvre → <strong>numéro du propriétaire visible sur la page</strong></div>
       <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="bpap" onclick="event.stopPropagation()">
         📞 Voir la fiche → numéro du propriétaire sur la page
       </a>
       ${aid?`<div class="ref-tag">Réf ${aid}</div>`:''}
     </div>`;
-  }else if(hasLink&&isLBC){
-    czone=`<div class="cz-lbc">
-      <div class="cz-lbl b">🟡 LeBonCoin — annonce réelle</div>
-      <div class="lbc-expl">Lien direct → <strong>photos et coordonnées sur la fiche</strong></div>
-      <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="blbc" onclick="event.stopPropagation()">
-        🔗 Voir l'annonce LeBonCoin
-      </a>
-      ${a.annonceId?`<div class="ref-tag">Réf ${a.annonceId}</div>`:''}
-    </div>`;
-  }else if(hasLink){
-    czone=`<div class="cz-lbc">
-      <div class="cz-lbl b">🔗 Lien direct disponible</div>
-      <div class="lbc-expl">Accès direct à l'annonce</div>
-      <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="blbc" onclick="event.stopPropagation()">
-        🔗 Voir l'annonce
-      </a>
-    </div>`;
-  }else if(a.agence){
+  }else if(hasAg){
+    // Cas 2 — Agence identifiée : nom connu → on peut chercher le numéro
     const gs='https://www.google.fr/search?q='+encodeURIComponent(a.agence+' '+a.ville+' immobilier téléphone');
+    const gm=mapsUrl(a.ville);
     czone=`<div class="cz-ag">
       <div class="cz-lbl o">Agence identifiée</div>
       <div class="ag-nm">🏢 ${a.agence}</div>
       <div class="ag-btns">
         <a href="${gs}" target="_blank" rel="noopener noreferrer" class="bag" onclick="event.stopPropagation()">🔍 Trouver le numéro</a>
-        <a href="${mapsUrl(a.ville)}" target="_blank" rel="noopener noreferrer" class="bag maps" onclick="event.stopPropagation()">📍 Maps</a>
+        <a href="${gm}" target="_blank" rel="noopener noreferrer" class="bag maps" onclick="event.stopPropagation()">📍 Maps</a>
       </div>
     </div>`;
   }else{
-    const sn=a.source||'Plateforme';
+    // Cas 3 — Pas d'info directe : recherche ciblée
+    const sn={leboncoin:'LeBonCoin',seloger:'SeLoger',bienici:"Bien'ici",pap:'PAP'}[a.sk]||a.source||'Plateforme';
     czone=`<div class="cz-no">
-      <div class="cz-no-txt"><strong>${sn}</strong>${a.annonceId?' · Réf '+a.annonceId:''}<br>Lien non disponible</div>
-      <a href="https://www.google.fr/search?q=${encodeURIComponent(sn+' '+a.titre+' '+a.ville)}" target="_blank" rel="noopener noreferrer" class="bno" onclick="event.stopPropagation()">🔍 Chercher</a>
+      <div class="cz-no-txt"><strong>${sn}</strong>${a.annonceId?' · Réf '+a.annonceId:''}<br>Retrouver l'annonce pour le contact</div>
+      <a href="${gUrl(buildGQ(a))}" target="_blank" rel="noopener noreferrer" class="bno" onclick="event.stopPropagation()">🔍 Trouver</a>
     </div>`;
   }
 
-  return`<div class="card${top?' top':''}${hasLink?' has-link':''}" data-id="${a.id}" style="animation-delay:${Math.min(idx,12)*.04}s">
+  return`<div class="card${top?' top':''}${hasPAP?' tel':''}" data-id="${a.id}" style="animation-delay:${Math.min(idx,12)*.04}s">
     ${photoHtml}
     <div class="chead">
       <div class="cmeta"><span class="csrc">${a.source||'—'}</span>
@@ -794,8 +791,8 @@ function mkCard(a,idx){
       </div>
     </div>
     <div class="cdata">
-      <div class="cd"><div class="cdl">Prix</div><div class="cdv">${(a.prix/1000).toFixed(0)}k€</div><div class="cds">${a.surface?Math.round(a.prix/a.surface).toLocaleString('fr-FR')+' €/m²':''}</div></div>
-      <div class="cd"><div class="cdl">Surface</div><div class="cdv">${a.surface||'—'} m²</div><div class="cds">${a.pieces?a.pieces+'p':''}</div></div>
+      <div class="cd"><div class="cdl">Prix</div><div class="cdv">${(a.prix/1000).toFixed(0)}k€</div><div class="cds">${a.surf?Math.round(a.prix/a.surf).toLocaleString('fr-FR')+' €/m²':''}</div></div>
+      <div class="cd"><div class="cdl">Surface</div><div class="cdv">${a.surf||'—'} m²</div><div class="cds">${a.pieces?a.pieces+'p':''}</div></div>
       <div class="cd"><div class="cdl">Cashflow</div><div class="cdv" style="color:${cfP?'var(--gm)':'var(--r)'}">${cfP?'+':''}${calc.cf.toLocaleString('fr-FR')}€</div><div class="cds">par mois</div></div>
     </div>
     <div class="czone">${czone}</div>
@@ -815,73 +812,47 @@ function openM(id){
   activeA=R.find(r=>r.id===id);if(!activeA)return;
   const a=activeA,not=a.not??NO(),ne=a.ne??NE();
   const pN=a.prix*(1-ne/100),calc=calcR(pN,a.loyer,not),c=cc(calc.rn);
-  const isPAP=a.sk==='pap',isLBC=a.sk==='leboncoin';
-  const hasLink=!!(a.urlEstExacte&&a.url);
 
   document.getElementById('m-src').textContent=(a.source||'—')+' · '+new Date(a.createdAt).toLocaleDateString('fr-FR');
   document.getElementById('m-tit').textContent=a.titre||a.type+' — '+a.ville;
   document.getElementById('m-loc').textContent='📍 '+a.ville+(a.quartier?', '+a.quartier:'')+(a.cp?' ('+a.cp+')':'');
 
-  // Photos dans le modal
-  const photos=a.photos||[];
-  const mph=document.getElementById('m-ph');
-  const mphotos=document.getElementById('m-photos');
-  if(photos.length){
-    mphotos.innerHTML=photos.slice(0,8).map(p=>`<img src="${p}" alt="Photo" onerror="this.style.display='none'">`).join('');
-    mph.style.display='block';
-  }else{mph.style.display='none';}
-
-  // Contact
+  // Contact modal — honnête et actionnable
   let cHtml;
-  if(hasLink&&isPAP){
+  if(a.urlEstExacte&&a.url){
     const aid=a.annonceId||a.url.match(/g\d+/)?.[0]||'';
     cHtml=`<div class="mc pap">
-      <div class="mc-title g">✓ PAP — Lien direct, numéro visible sur la fiche</div>
+      <div class="mc-title g">✓ PAP — Lien direct vers la fiche du propriétaire</div>
       <div class="mc-expl">
-        PAP est un site de particulier à particulier sans agence.<br>
-        <strong>→ Numéro du propriétaire visible directement sur la fiche, sans inscription.</strong><br>
+        PAP est un site de particulier à particulier sans agence. Sur la fiche PAP :<br>
+        <strong>→ Numéro de téléphone du propriétaire visible directement</strong>, sans inscription ni compte.<br>
         Cliquez → ouvrez la fiche → appelez.
       </div>
       ${aid?`<div class="ref-tag" style="margin-bottom:9px;display:inline-block">Référence : ${aid}</div>`:''}
       <div class="mac">
-        <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba g">📞 Ouvrir la fiche PAP → numéro visible</a>
-        <button class="mba ghost" onclick="navigator.clipboard.writeText('${a.url}').then(()=>toast('🔗 Lien copié !'))">📋 Copier</button>
-      </div>
-    </div>`;
-  }else if(hasLink&&isLBC){
-    cHtml=`<div class="mc lbc">
-      <div class="mc-title b">🟡 LeBonCoin — annonce réelle avec photos</div>
-      <div class="mc-expl">Lien direct vers la vraie annonce LeBonCoin.<br><strong>Photos, description complète et coordonnées sur la page.</strong></div>
-      <div class="mac">
-        <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba b">🔗 Voir l'annonce LeBonCoin</a>
-        <button class="mba ghost" onclick="navigator.clipboard.writeText('${a.url}').then(()=>toast('🔗 Lien copié !'))">📋 Copier</button>
-      </div>
-    </div>`;
-  }else if(hasLink){
-    cHtml=`<div class="mc lbc">
-      <div class="mc-title b">🔗 Lien direct disponible</div>
-      <div class="mac">
-        <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba b">🔗 Voir l'annonce</a>
+        <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba g">🔗 Ouvrir la fiche PAP → numéro visible</a>
+        <button class="mba ghost" onclick="navigator.clipboard.writeText('${a.url}').then(()=>toast('🔗 Lien copié !'))">📋 Copier le lien</button>
       </div>
     </div>`;
   }else if(a.agence){
     const gs='https://www.google.fr/search?q='+encodeURIComponent(a.agence+' '+a.ville+' immobilier téléphone');
+    const gm=mapsUrl(a.ville);
     cHtml=`<div class="mc ag">
       <div class="mc-title o">Agence connue — numéro à trouver en 30 secondes</div>
       <div class="mc-ag-big">🏢 ${a.agence}</div>
       <div class="mc-expl">Cherchez le numéro de <strong>${a.agence}</strong> via Google ou Google Maps :</div>
       <div class="mac">
         <a href="${gs}" target="_blank" rel="noopener noreferrer" class="mba n">🔍 Trouver le numéro de ${a.agence}</a>
-        <a href="${mapsUrl(a.ville)}" target="_blank" rel="noopener noreferrer" class="mba ghost">📍 Agences locales Maps</a>
+        <a href="${gm}" target="_blank" rel="noopener noreferrer" class="mba ghost">📍 Agences locales Maps</a>
       </div>
     </div>`;
   }else{
-    const sn=a.source||'plateforme';
+    const q=buildGQ(a);const sn=a.source||a.sk||'plateforme';
     cHtml=`<div class="mc no">
       <div class="mc-title grey">Contact non disponible directement</div>
       <div class="mc-expl">Retrouvez cette annonce sur <strong>${sn}</strong> pour accéder au contact.</div>
       <div class="mac">
-        <a href="https://www.google.fr/search?q=${encodeURIComponent(sn+' '+a.titre+' '+a.ville)}" target="_blank" rel="noopener noreferrer" class="mba n">🔍 Retrouver l'annonce</a>
+        <a href="${gUrl(q)}" target="_blank" rel="noopener noreferrer" class="mba n">🔍 Retrouver l'annonce</a>
         <a href="${mapsUrl(a.ville)}" target="_blank" rel="noopener noreferrer" class="mba ghost">📞 Agences locales</a>
       </div>
     </div>`;
@@ -900,29 +871,33 @@ function openM(id){
   // Data table
   const rows=[
     ['Titre',`<strong>${a.titre||'—'}</strong>`],
-    ['Prix',`<strong>${Number(a.prix).toLocaleString('fr-FR')} €</strong>${a.surface?' · '+Math.round(a.prix/a.surface).toLocaleString('fr-FR')+' €/m²':''}`],
-    ['Surface',a.surface?a.surface+' m²':'—'],
-    ['Pièces',a.pieces?a.pieces+'':'—'],
+    ['Prix',`<strong>${Number(a.prix).toLocaleString('fr-FR')} €</strong>${a.surf?' · '+Math.round(a.prix/a.surf).toLocaleString('fr-FR')+' €/m²':''}`],
+    ['Surface',a.surf?a.surf+' m²':'—'],['Pièces',a.pieces?a.pieces+'':'—'],
     ['Localisation',`${a.ville||'—'}${a.cp?' ('+a.cp+')':''}${a.quartier?' · '+a.quartier:''}`],
     ['DPE',a.dpe?`<span style="font-weight:700;color:${DPE_C[a.dpe]||'inherit'}">${a.dpe}</span>`:'—'],
     ['Loyer estimé',(a.loyer||0).toLocaleString('fr-FR')+' €/mois'],
-    ['Source',`${a.source||'—'}${a.agence?' · '+a.agence:''}`],
+    ['Source/Agence',`${a.source||'—'}${a.agence?' · '+a.agence:''}`],
     ['Référence',a.annonceId||'—'],
   ].filter(([,v])=>v&&v!=='—');
   se('m-data').innerHTML=`<table class="dtbl">${rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>`;
 
+  // Desc
   if(a.desc){se('m-desc').textContent=a.desc;se('m-ds').style.display='block';}
   else se('m-ds').style.display='none';
 
   // Accès
+  const q1=buildGQ(a);
+  const q2=['site:'+(DOM[a.sk]||'leboncoin.fr'),(a.type||'appartement').toLowerCase().replace('studio / t1','studio'),a.cp||a.ville,a.surf?a.surf+'m2':''].filter(Boolean).join(' ');
   let accHtml;
-  if(hasLink){
-    accHtml=`<a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba ${isPAP?'g':'b'}" style="display:flex;padding:10px 15px;font-size:13px">${isPAP?'📞 Ouvrir la fiche PAP directement':'🔗 Ouvrir l\'annonce'}</a>`;
+  if(a.urlEstExacte&&a.url){
+    accHtml=`<a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba g" style="display:flex;padding:10px 15px;font-size:13px;margin-bottom:0">🔗 Ouvrir la fiche PAP directement</a>`;
   }else{
-    const q=`${a.source||''} ${a.titre||''} ${a.ville||''}`.trim();
     accHtml=`<div class="urlbox">
-      <div style="display:flex;gap:6px">
-        <a href="https://www.google.fr/search?q=${encodeURIComponent(q)}" target="_blank" rel="noopener noreferrer" class="mba b" style="flex:1">🔍 Rechercher l'annonce</a>
+      <div class="urow"><span class="ul">Précise</span><span class="uv" title="${q1}">${q1}</span><button class="ucpy" onclick="navigator.clipboard.writeText('${q1}').then(()=>toast('📋 Copié !'))">📋</button></div>
+      <div class="urow"><span class="ul">Large</span><span class="uv" title="${q2}">${q2}</span><button class="ucpy" onclick="navigator.clipboard.writeText('${q2}').then(()=>toast('📋 Copié !'))">📋</button></div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <a href="${gUrl(q1)}" target="_blank" rel="noopener noreferrer" class="mba b" style="flex:1">🔍 Recherche précise</a>
+        <a href="${gUrl(q2)}" target="_blank" rel="noopener noreferrer" class="mba ghost" style="flex:1">🔍 Sans prix</a>
       </div>
     </div>`;
   }
@@ -930,9 +905,9 @@ function openM(id){
 
   // Footer
   const isSav=SAV.includes(a.id);
-  const mainFt=hasLink
-    ?`<a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mfb ${isPAP?'g':'bbl'}">${isPAP?'📞 Fiche PAP':'🔗 Voir l\'annonce'}</a>`
-    :`<a href="https://www.google.fr/search?q=${encodeURIComponent((a.source||'')+' '+(a.titre||'')+' '+(a.ville||''))}" target="_blank" rel="noopener noreferrer" class="mfb p">🔍 Retrouver</a>`;
+  const mainFt=a.urlEstExacte&&a.url
+    ?`<a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mfb g">🔗 Voir la fiche PAP</a>`
+    :`<a href="${gUrl(q1)}" target="_blank" rel="noopener noreferrer" class="mfb p">🔍 Retrouver</a>`;
   se('m-foot').innerHTML=mainFt+`<button class="mfb s" onclick="toggleSave('${a.id}')">${isSav?'⭐':'☆'}</button><button class="mfb s" onclick="closeM()">Fermer</button>`;
 
   document.getElementById('ovl').classList.add('open');
