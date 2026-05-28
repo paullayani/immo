@@ -146,14 +146,20 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
 /* ═══ CONTACT ZONE — La zone centrale ═══ */
 .czone{padding:11px 13px}
 
-/* Cas 1 — PAP lien direct (seule vraie solution sans compte) */
+/* Cas 1a — PAP lien direct */
 .cz-pap{background:var(--gl);border:1.5px solid var(--gb);border-radius:8px;padding:9px 11px}
+/* Cas 1b — LeBonCoin lien direct */
+.cz-lbc{background:var(--bl);border:1.5px solid var(--bb);border-radius:8px;padding:9px 11px}
 .cz-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
 .cz-lbl.g{color:var(--g)}.cz-lbl.o{color:var(--o)}.cz-lbl.b{color:var(--b)}.cz-lbl.grey{color:var(--ink3)}
 .pap-expl{font-size:11px;color:var(--g);font-weight:500;margin-bottom:7px;line-height:1.35}
 .pap-expl strong{font-weight:700}
+.lbc-expl{font-size:11px;color:var(--b);font-weight:500;margin-bottom:7px;line-height:1.35}
+.lbc-expl strong{font-weight:700}
 .bpap{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:8px;background:var(--gm);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);text-decoration:none;transition:background .12s}
 .bpap:hover{background:var(--g)}
+.blbc{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:8px;background:var(--b);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);text-decoration:none;transition:background .12s}
+.blbc:hover{background:#1e40af}
 .ref-tag{font-family:monospace;font-size:9px;color:var(--ink3);background:var(--bg2);border-radius:3px;padding:1px 5px;display:inline-block;margin-top:4px}
 
 /* Cas 2 — Agence identifiée */
@@ -261,7 +267,7 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
 .mfoot{padding:11px 18px;border-top:1px solid var(--bg2);display:flex;gap:7px;background:var(--bg)}
 .mfb{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);border:none;display:flex;align-items:center;justify-content:center;gap:4px;text-decoration:none;transition:opacity .12s}
 .mfb:hover{opacity:.85}
-.mfb.p{background:var(--ink);color:#fff}.mfb.g{background:var(--gm);color:#fff}
+.mfb.p{background:var(--ink);color:#fff}.mfb.g{background:var(--gm);color:#fff}.mfb.bbl{background:var(--b);color:#fff}
 .mfb.s{background:var(--bg2);color:var(--ink2);flex:.55}
 
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;padding:8px 18px;border-radius:100px;font-size:12px;font-weight:500;opacity:0;transition:all .18s;pointer-events:none;z-index:999;white-space:nowrap}
@@ -326,9 +332,9 @@ body{font-family:var(--fb);background:var(--bg);color:var(--ink);min-height:100v
     </div>
 
     <div class="infonote">
-      <strong>Comment ça marche :</strong><br>
-      Scan PAP prioritaire → lien direct vers la fiche → numéro visible sur la page.<br>
-      Agences locales → numéros garantis via Google Places ou mode démo.
+      <strong>Scan réel LeBonCoin :</strong><br>
+      Chaque annonce = lien direct vers la vraie fiche avec toutes les photos.<br>
+      Cliquez → vous voyez exactement cet appartement sur LeBonCoin.
     </div>
 
     <button class="bscan" id="bscan" onclick="startScan()">🔍 <span id="scantxt">Scanner les annonces</span></button>
@@ -509,42 +515,83 @@ function setP(pct,msg){
 }
 
 // ══ SCAN ════════════════════════════════════════════════════════════
+// Appelle directement l'API LeBonCoin via un proxy CORS public.
+// Chaque annonce retournée a urlEstExacte:true → lien direct + vraies photos.
 async function startScan() {
   if (scanning) return;
   if (!VV.length) { toast('⚠️ Ajoutez au moins une ville'); return; }
   scanning = true;
   const btn = document.getElementById('bscan');
-  btn.disabled = true; document.getElementById('scantxt').textContent = 'Scan en cours…';
+  btn.disabled = true;
+  document.getElementById('scantxt').textContent = 'Scan en cours…';
   document.getElementById('pwrap').classList.add('show');
   document.getElementById('empt').style.display = 'none';
   document.getElementById('cgrid').innerHTML = '';
   const not = NO(), ne = NE(), thr = T();
+  const allListings = [];
+
   try {
-    setP(20, 'Connexion aux plateformes…');
-    const resp = await fetch('/api/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ villes: VV, budgetMax: BU(), surfMin: SM() }),
-    });
-    if (!resp.ok) throw new Error('Erreur serveur ' + resp.status);
-    setP(75, 'Analyse des résultats…');
-    const data = await resp.json();
-    if (!data.success) throw new Error(data.error || 'Scan échoué');
+    const maxV = Math.min(VV.length, 5);
+    for (let i = 0; i < maxV; i++) {
+      const ville = VV[i];
+      setP(10 + (i / maxV) * 72, 'LeBonCoin — ' + ville + '…');
+      try {
+        const resp = await fetch('https://corsproxy.io/?https://api.leboncoin.fr/finder/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filters: {
+              category: { id: '9' },
+              enums: { ad_type: ['offer'], real_estate_type: ['1', '2', '3'] },
+              location: { locations: [{ locationType: 'city', label: ville }] },
+              ranges: {
+                price: { min: 20000, max: BU() },
+                ...(SM() ? { square: { min: SM() } } : {})
+              }
+            },
+            limit: 35, limit_alu: 3, sort_by: 'time', sort_order: 'desc'
+          })
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        for (const ad of (data.ads || [])) {
+          const prix = ad.price?.[0] || 0;
+          if (!prix || prix < 20000 || prix > BU() * 1.05) continue;
+          const ga = k => { const x = (ad.attributes || []).find(a => a.key === k); return x ? (x.value || '') : ''; };
+          const surf = parseInt(ga('square')) || 0;
+          if (SM() && surf > 0 && surf < SM()) continue;
+          const pieces = parseInt(ga('rooms')) || 0;
+          const dpe = ga('energy_rate') || '';
+          const tv = ga('real_estate_type');
+          const type = tv === '3' ? 'Studio' : tv === '2' ? 'Maison' : 'Appartement';
+          const photos = (ad.images?.urls || []).map(u => u.replace('{size}', '400x300'));
+          const photo = ad.images?.small_url || photos[0] || '';
+          const annonceId = String(ad.list_id || '');
+          allListings.push({
+            source: 'LeBonCoin', sk: 'leboncoin',
+            ville, cp: ad.location?.zipcode || '', quartier: ad.location?.city_label || '',
+            titre: ad.subject || '', type, desc: ad.body || '',
+            prix, surf, pieces, photo, photos: photos.slice(0, 8),
+            url: 'https://www.leboncoin.fr/ad/immobilier/' + annonceId,
+            urlEstExacte: true, annonceId, dpe, agence: '',
+          });
+        }
+      } catch (e) { console.warn('LBC', ville, e.message); }
+    }
+
+    setP(87, 'Calcul des rentabilités…');
     const seen = new Set();
-    R = (data.listings || [])
-      .filter(l => {
-        const k = l.url || (l.titre + '|' + l.prix);
-        if (seen.has(k)) return false;
-        seen.add(k); return l.prix && l.prix > 0;
-      })
+    R = allListings
+      .filter(l => { const k = l.url; if (seen.has(k)) return false; seen.add(k); return l.prix > 0; })
       .map(l => {
-        const loyer = l.loyerEstime || estL(l.ville || '', l.surface || 0);
+        const loyer = estL(l.ville || '', l.surf || 0);
         const pN = l.prix * (1 - ne / 100);
         const calc = calcR(pN, loyer, not);
         return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...l, loyer, ...calc, thr, not, ne, createdAt: new Date().toISOString() };
       })
       .sort((a, b) => b.rn - a.rn).slice(0, 300);
-    if (!R.length) { R = getFallback(); toast('ℹ️ Aucun résultat — mode démonstration'); }
+
+    if (!R.length) { R = getFallback(); toast('ℹ️ API LeBonCoin indisponible — données démo'); }
     localStorage.setItem('ic_R', JSON.stringify(R));
     setP(100, '✅ ' + R.length + ' annonces trouvées');
     setTimeout(() => {
@@ -730,24 +777,35 @@ function mkCard(a,idx){
   const pN=a.prix*(1-ne/100),calc=calcR(pN,a.loyer,not),c=cc(calc.rn);
   const bw=Math.min((calc.rn/(T()*1.6))*100,100),top=calc.rn>=T(),cfP=calc.cf>=0;
   const isSav=SAV.includes(a.id),dCls=a.dpe?'d'+a.dpe:'';
-  const hasPAP=a.urlEstExacte&&a.url,hasAg=!!a.agence;
+  const hasDirect=!!(a.urlEstExacte&&a.url),hasAg=!!a.agence;
+  const isPAP=a.sk==='pap', isLBC=a.sk==='leboncoin';
 
   const photoHtml = a.photo
     ? `<div class="cimg" style="background-image:url('${a.photo.replace(/'/g,"\\'")}')"></div>`
-    : `<div class="cimg">${a.sk==='pap'?'📋':'🏠'}</div>`;
+    : `<div class="cimg">${isPAP?'📋':'🏠'}</div>`;
 
-  // ZONE CONTACT — logique simplifiée et honnête
+  // ZONE CONTACT
   let czone;
-  if(hasPAP){
-    // Cas 1 — PAP avec URL directe : c'est la vraie solution
+  if(hasDirect && isPAP){
+    // Cas 1a — PAP : numéro du propriétaire visible directement sur la fiche
     const aid=a.annonceId||a.url.match(/g\d+/)?.[0]||'';
     czone=`<div class="cz-pap">
-      <div class="cz-lbl g">✓ PAP — Lien direct vers la fiche</div>
+      <div class="cz-lbl g">✓ PAP — Lien direct</div>
       <div class="pap-expl">Cliquez → fiche s'ouvre → <strong>numéro du propriétaire visible sur la page</strong></div>
       <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="bpap" onclick="event.stopPropagation()">
-        📞 Voir la fiche → numéro du propriétaire sur la page
+        📞 Voir la fiche PAP → numéro propriétaire
       </a>
       ${aid?`<div class="ref-tag">Réf ${aid}</div>`:''}
+    </div>`;
+  }else if(hasDirect && isLBC){
+    // Cas 1b — LeBonCoin : lien direct vers la vraie annonce avec photos
+    czone=`<div class="cz-lbc">
+      <div class="cz-lbl b">✓ LeBonCoin — Lien direct</div>
+      <div class="lbc-expl">Cliquez → <strong>vraie annonce avec toutes les photos</strong> — contactez via le bouton "Contacter"</div>
+      <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="blbc" onclick="event.stopPropagation()">
+        🔗 Voir l'annonce LeBonCoin
+      </a>
+      ${a.annonceId?`<div class="ref-tag">Réf ${a.annonceId}</div>`:''}
     </div>`;
   }else if(hasAg){
     // Cas 2 — Agence identifiée : nom connu → on peut chercher le numéro
@@ -770,7 +828,7 @@ function mkCard(a,idx){
     </div>`;
   }
 
-  return`<div class="card${top?' top':''}${hasPAP?' tel':''}" data-id="${a.id}" style="animation-delay:${Math.min(idx,12)*.04}s">
+  return`<div class="card${top?' top':''}${hasDirect?' tel':''}" data-id="${a.id}" style="animation-delay:${Math.min(idx,12)*.04}s">
     ${photoHtml}
     <div class="chead">
       <div class="cmeta"><span class="csrc">${a.source||'—'}</span>
@@ -817,20 +875,35 @@ function openM(id){
   document.getElementById('m-tit').textContent=a.titre||a.type+' — '+a.ville;
   document.getElementById('m-loc').textContent='📍 '+a.ville+(a.quartier?', '+a.quartier:'')+(a.cp?' ('+a.cp+')':'');
 
-  // Contact modal — honnête et actionnable
+  // Contact modal — source-aware
   let cHtml;
-  if(a.urlEstExacte&&a.url){
+  if(a.urlEstExacte&&a.url&&a.sk==='pap'){
     const aid=a.annonceId||a.url.match(/g\d+/)?.[0]||'';
     cHtml=`<div class="mc pap">
-      <div class="mc-title g">✓ PAP — Lien direct vers la fiche du propriétaire</div>
+      <div class="mc-title g">✓ PAP — Lien direct propriétaire</div>
       <div class="mc-expl">
-        PAP est un site de particulier à particulier sans agence. Sur la fiche PAP :<br>
-        <strong>→ Numéro de téléphone du propriétaire visible directement</strong>, sans inscription ni compte.<br>
+        PAP est un site de particulier à particulier. Sur la fiche :<br>
+        <strong>→ Numéro de téléphone du propriétaire visible directement</strong>, sans inscription.<br>
         Cliquez → ouvrez la fiche → appelez.
       </div>
-      ${aid?`<div class="ref-tag" style="margin-bottom:9px;display:inline-block">Référence : ${aid}</div>`:''}
+      ${aid?`<div class="ref-tag" style="margin-bottom:9px;display:inline-block">Réf : ${aid}</div>`:''}
       <div class="mac">
-        <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba g">🔗 Ouvrir la fiche PAP → numéro visible</a>
+        <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba g">📞 Ouvrir la fiche PAP → numéro visible</a>
+        <button class="mba ghost" onclick="navigator.clipboard.writeText('${a.url}').then(()=>toast('🔗 Lien copié !'))">📋 Copier le lien</button>
+      </div>
+    </div>`;
+  }else if(a.urlEstExacte&&a.url){
+    // LeBonCoin ou autre source avec lien direct
+    const srcName=a.source||'LeBonCoin';
+    cHtml=`<div class="mc" style="background:var(--bl);border:1.5px solid var(--bb)">
+      <div class="mc-title b">✓ ${srcName} — Lien direct vers l'annonce</div>
+      <div class="mc-expl">
+        Cliquez → <strong>vraie annonce avec toutes les photos</strong>.<br>
+        Sur la page : bouton "Contacter" pour joindre le vendeur.
+      </div>
+      ${a.annonceId?`<div class="ref-tag" style="margin-bottom:9px;display:inline-block">Réf : ${a.annonceId}</div>`:''}
+      <div class="mac">
+        <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba" style="background:var(--b);color:#fff">🔗 Ouvrir l'annonce ${srcName}</a>
         <button class="mba ghost" onclick="navigator.clipboard.writeText('${a.url}').then(()=>toast('🔗 Lien copié !'))">📋 Copier le lien</button>
       </div>
     </div>`;
@@ -890,7 +963,9 @@ function openM(id){
   const q2=['site:'+(DOM[a.sk]||'leboncoin.fr'),(a.type||'appartement').toLowerCase().replace('studio / t1','studio'),a.cp||a.ville,a.surf?a.surf+'m2':''].filter(Boolean).join(' ');
   let accHtml;
   if(a.urlEstExacte&&a.url){
-    accHtml=`<a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba g" style="display:flex;padding:10px 15px;font-size:13px;margin-bottom:0">🔗 Ouvrir la fiche PAP directement</a>`;
+    const accSrc=a.sk==='pap'?'PAP':(a.source||'LeBonCoin');
+    const accCls=a.sk==='pap'?'g':'b';
+    accHtml=`<a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mba ${accCls}" style="display:flex;padding:10px 15px;font-size:13px;margin-bottom:0">🔗 Ouvrir la fiche ${accSrc} directement</a>`;
   }else{
     accHtml=`<div class="urlbox">
       <div class="urow"><span class="ul">Précise</span><span class="uv" title="${q1}">${q1}</span><button class="ucpy" onclick="navigator.clipboard.writeText('${q1}').then(()=>toast('📋 Copié !'))">📋</button></div>
@@ -905,8 +980,10 @@ function openM(id){
 
   // Footer
   const isSav=SAV.includes(a.id);
+  const ftSrc=a.sk==='pap'?'PAP':(a.source||'LeBonCoin');
+  const ftCls=a.sk==='pap'?'g':'bbl';
   const mainFt=a.urlEstExacte&&a.url
-    ?`<a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mfb g">🔗 Voir la fiche PAP</a>`
+    ?`<a href="${a.url}" target="_blank" rel="noopener noreferrer" class="mfb ${ftCls}">🔗 Voir l'annonce ${ftSrc}</a>`
     :`<a href="${gUrl(q1)}" target="_blank" rel="noopener noreferrer" class="mfb p">🔍 Retrouver</a>`;
   se('m-foot').innerHTML=mainFt+`<button class="mfb s" onclick="toggleSave('${a.id}')">${isSav?'⭐':'☆'}</button><button class="mfb s" onclick="closeM()">Fermer</button>`;
 
