@@ -516,47 +516,8 @@ function setP(pct,msg){
   document.getElementById('ppct').textContent=pct+'%';
 }
 
-// Claude cherche sur LeBonCoin avec web_search — visite chaque annonce pour extraire les vraies infos.
-async function scanViaClaudeWebSearch(ville, budgetMax, surfMin) {
-  if (!AK) throw new Error('Clé API Anthropic manquante');
-  const searchUrl = `https://www.leboncoin.fr/recherche?category=9&locations=${encodeURIComponent(ville)}&price=0-${budgetMax}&real_estate_type=1,2,3${surfMin ? '&square=' + surfMin + '-600' : ''}`;
-
-  const prompt = `Tu es un assistant immobilier expert. Effectue exactement ces 2 étapes dans l'ordre.
-
-═══ ÉTAPE 1 ═══
-Visite cette page de recherche LeBonCoin :
-${searchUrl}
-
-Relève les URLs des 6 premières annonces d'appartements (format : https://www.leboncoin.fr/ad/immobilier/NUMERO).
-
-═══ ÉTAPE 2 ═══
-Pour CHACUNE des 6 annonces, visite sa page individuelle et extrais ces informations exactes depuis la page :
-- url : URL exacte de l'annonce (https://www.leboncoin.fr/ad/immobilier/NUMERO_EXACT)
-- titre : titre exact tel qu'affiché sur la page
-- prix : prix en euros, nombre entier (ex : 185000)
-- surf : surface en m², nombre entier (ex : 38)
-- pieces : nombre de pièces, nombre entier
-- cp : code postal (ex : "93200")
-- quartier : nom du quartier ou de la ville
-- desc : les 200 premiers caractères de la description de l'annonce
-- agence : nom exact de l'agence immobilière, ou "Particulier" si c'est un particulier
-- phone : numéro de téléphone de l'agence ou du vendeur tel qu'affiché sur la page (ex : "01 23 45 67 89"), ou "" si non visible
-- ref : référence de l'annonce telle qu'affichée sur la page (ex : "REF-12345"), ou "" si non visible
-- photo : URL complète de la première photo de l'annonce (commence par https://), ou "" si non disponible
-
-═══ RÉSULTAT ═══
-Retourne UNIQUEMENT un tableau JSON valide avec ces objets. Aucun texte avant, aucun texte après.
-
-RÈGLES ABSOLUES :
-1. N'invente JAMAIS un numéro d'annonce, un prix, un téléphone ou une URL
-2. Utilise uniquement les données réellement vues sur les pages visitées
-3. Si une annonce n'est pas accessible, ne la retourne pas
-4. Si aucune annonce trouvée : []
-5. Vérifie que chaque URL visitée correspond bien à une vraie annonce LeBonCoin
-
-Exemple de format attendu :
-[{"url":"https://www.leboncoin.fr/ad/immobilier/2456789012","titre":"Appartement 2 pièces 38m²","prix":185000,"surf":38,"pieces":2,"cp":"93200","quartier":"Saint-Denis","desc":"Bel appartement lumineux...","agence":"Orpi Saint-Denis","phone":"01 48 09 45 67","ref":"LBC-2456789012","photo":"https://img.leboncoin.fr/api/v1/lbcpb1/..."}]`;
-
+// Appel Claude multi-tour avec web_search, retourne les annonces parsées.
+async function claudeSearch(prompt) {
   const messages = [{ role: 'user', content: prompt }];
   const headers = {
     'content-type': 'application/json',
@@ -564,11 +525,9 @@ Exemple de format attendu :
     'anthropic-version': '2023-06-01',
     'anthropic-dangerous-direct-browser-access': 'true',
   };
-
-  for (let round = 0; round < 15; round++) {
+  for (let round = 0; round < 20; round++) {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers,
+      method: 'POST', headers,
       body: JSON.stringify({
         model: 'claude-opus-4-7',
         max_tokens: 8192,
@@ -576,52 +535,103 @@ Exemple de format attendu :
         messages,
       })
     });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error((err.error?.message || 'API ' + resp.status).slice(0, 80));
-    }
+    if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error((e.error?.message||'API '+resp.status).slice(0,80)); }
     const data = await resp.json();
-
     if (data.stop_reason === 'end_turn') {
-      const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+      const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
       const m = text.match(/\[[\s\S]*\]/);
       if (!m) return [];
-      let items;
-      try { items = JSON.parse(m[0]); } catch { return []; }
-      return items
-        .filter(a => a.url && /leboncoin\.fr\/ad\/immobilier\/\d+/.test(a.url) && a.prix > 0)
-        .map(a => ({
-          source: 'LeBonCoin', sk: 'leboncoin', ville,
-          titre: a.titre || '', type: 'Appartement',
-          desc: a.desc || '',
-          prix: parseInt(a.prix) || 0,
-          surf: parseInt(a.surf) || 0,
-          pieces: parseInt(a.pieces) || 0,
-          dpe: '',
-          agence: (a.agence && a.agence !== 'Particulier') ? a.agence : '',
-          phone: a.phone || '',
-          ref: a.ref || '',
-          cp: a.cp || '',
-          quartier: a.quartier || '',
-          photo: a.photo || '',
-          photos: a.photo ? [a.photo] : [],
-          url: a.url,
-          urlEstExacte: true,
-          annonceId: a.url.match(/\/(\d+)$/)?.[1] || '',
-        }));
+      try { return JSON.parse(m[0]); } catch { return []; }
     }
-
     if (data.stop_reason === 'tool_use') {
       messages.push({ role: 'assistant', content: data.content });
-      const toolResults = (data.content || [])
-        .filter(b => b.type === 'tool_use')
-        .map(b => ({ type: 'tool_result', tool_use_id: b.id, content: '' }));
-      if (toolResults.length) messages.push({ role: 'user', content: toolResults });
+      const tr = (data.content||[]).filter(b=>b.type==='tool_use').map(b=>({type:'tool_result',tool_use_id:b.id,content:''}));
+      if (tr.length) messages.push({ role: 'user', content: tr });
       continue;
     }
     break;
   }
   return [];
+}
+
+// Scan LeBonCoin via recherche Google (URLs indexées = vraies annonces actives)
+async function scanViaClaudeWebSearch(ville, budgetMax, surfMin) {
+  if (!AK) throw new Error('Clé API Anthropic manquante');
+
+  const budgetTxt = budgetMax.toLocaleString('fr-FR');
+  const surfTxt = surfMin ? ` surface minimum ${surfMin}m²` : '';
+
+  const prompt = `Tu es un chasseur immobilier professionnel. Trouve de vraies annonces d'appartements à vendre.
+
+CRITÈRES : ${ville} — budget max ${budgetTxt}€${surfTxt}
+
+━━━ ÉTAPE 1 : RECHERCHE ━━━
+Effectue ces 2 recherches pour trouver des annonces réelles :
+
+Recherche A : site:leboncoin.fr/ad/immobilier appartement vente ${ville} ${budgetMax}€${surfMin ? ' ' + surfMin + 'm²' : ''}
+Recherche B : site:pap.fr/annonce appartement vente ${ville} ${budgetMax}€${surfMin ? ' ' + surfMin + 'm²' : ''}
+
+Note toutes les URLs d'annonces individuelles trouvées dans les résultats.
+- LeBonCoin : URLs au format https://www.leboncoin.fr/ad/immobilier/NUMERO
+- PAP : URLs au format https://www.pap.fr/annonce/...
+
+━━━ ÉTAPE 2 : VÉRIFICATION DE CHAQUE ANNONCE ━━━
+Pour chacune des 8 premières URLs trouvées, visite la page et extrait :
+- url : URL exacte telle que visitée (ne modifie pas l'URL)
+- source : "LeBonCoin" ou "PAP"
+- titre : titre exact de l'annonce sur la page
+- prix : prix en euros, entier (ex: 185000) — SEULEMENT si le bien correspond aux critères
+- surf : surface en m², entier
+- pieces : nombre de pièces, entier
+- cp : code postal exact
+- quartier : quartier ou ville
+- desc : premiers 150 caractères de la description
+- agence : nom exact de l'agence, ou "Particulier"
+- phone : numéro de téléphone visible sur la page (ex: "01 23 45 67 89"), "" si non affiché
+- ref : référence exacte de l'annonce visible sur la page, "" si non affiché
+- photo : URL complète de la première photo (https://...), "" si non disponible
+
+━━━ ÉTAPE 3 : RÉSULTAT ━━━
+Retourne UNIQUEMENT le tableau JSON. Aucun texte avant ou après.
+
+⚠️ RÈGLE ABSOLUE : N'invente JAMAIS un numéro d'annonce, un ID, un téléphone, un prix ou une URL.
+Utilise UNIQUEMENT les données vues sur les pages que tu as visitées.
+Si une page est inaccessible ou ne correspond pas aux critères, ne retourne pas cette annonce.
+Si rien trouvé : []`;
+
+  const raw = await claudeSearch(prompt);
+  return raw
+    .filter(a => {
+      if (!a.url || !a.prix || a.prix <= 0) return false;
+      if (!/leboncoin\.fr\/ad\/immobilier\/\d+/.test(a.url) && !/pap\.fr\/annonce\//.test(a.url)) return false;
+      if (a.prix > budgetMax * 1.05) return false;
+      return true;
+    })
+    .map(a => {
+      const isLBC = /leboncoin\.fr/.test(a.url);
+      const isPAP = /pap\.fr/.test(a.url);
+      return {
+        source: isLBC ? 'LeBonCoin' : isPAP ? 'PAP' : (a.source || 'Annonce'),
+        sk: isLBC ? 'leboncoin' : isPAP ? 'pap' : 'other',
+        ville,
+        titre: a.titre || '', type: 'Appartement',
+        desc: a.desc || '',
+        prix: parseInt(a.prix) || 0,
+        surf: parseInt(a.surf) || 0,
+        pieces: parseInt(a.pieces) || 0,
+        dpe: '',
+        agence: (a.agence && a.agence !== 'Particulier') ? a.agence : '',
+        phone: a.phone || '',
+        ref: a.ref || '',
+        cp: a.cp || '',
+        quartier: a.quartier || '',
+        photo: a.photo || '',
+        photos: a.photo ? [a.photo] : [],
+        url: a.url,
+        urlEstExacte: true,
+        annonceId: a.url.match(/\/(\d+)$|\/a(\d+)/)?.[1] || a.url.match(/g(\d+)/)?.[1] || '',
+      };
+    });
 }
 
 async function startScan() {
