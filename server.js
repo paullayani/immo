@@ -6,6 +6,7 @@ const path = require('path');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname)));
@@ -26,6 +27,7 @@ async function newPage(browser) {
     viewport: { width: 1366, height: 768 },
     locale: 'fr-FR',
     extraHTTPHeaders: { 'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8' },
+    ignoreHTTPSErrors: true,
   });
   const page = await ctx.newPage();
   // Block heavy/useless resources
@@ -65,7 +67,11 @@ async function scrapeLBC(browser, ville, budgetMax, surfMin) {
 
   const { page, ctx } = await newPage(browser);
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    const resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    if (resp && resp.status() === 403) {
+      const body = await page.evaluate(() => document.body?.innerText?.slice(0, 100) || '').catch(() => '');
+      throw new Error(`LeBonCoin bloqué (403)${body ? ': ' + body : ''}`);
+    }
     await acceptCookies(page);
     await page.waitForTimeout(2500);
 
@@ -204,7 +210,11 @@ async function scrapePAP(browser, ville, budgetMax, surfMin) {
 
   const { page, ctx } = await newPage(browser);
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    const resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    if (resp && resp.status() === 403) {
+      const body = await page.evaluate(() => document.body?.innerText?.slice(0, 100) || '').catch(() => '');
+      throw new Error(`PAP bloqué (403)${body ? ': ' + body : ''}`);
+    }
     await acceptCookies(page);
     await page.waitForTimeout(2000);
 
@@ -310,28 +320,39 @@ app.post('/api/scan', async (req, res) => {
 
   let browser;
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({
+      headless: true,
+      executablePath: CHROMIUM_PATH,
+      args: ['--ignore-certificate-errors', '--no-sandbox', '--disable-setuid-sandbox'],
+    });
 
     const allListings = [];
+    const errors = [];
     const maxVilles = Math.min(villes.length, 5);
 
     for (let i = 0; i < maxVilles; i++) {
       const ville = villes[i];
+      console.log(`[scan] ${ville} — LBC…`);
 
       // LeBonCoin
       try {
         const lbc = await scrapeLBC(browser, ville, budgetMax || 400000, surfMin || 0);
+        console.log(`[scan] ${ville} — LBC: ${lbc.length} annonces`);
         allListings.push(...lbc);
       } catch (e) {
-        console.error(`LBC ${ville}:`, e.message);
+        console.error(`[scan] LBC ${ville}:`, e.message);
+        errors.push(`LBC ${ville}: ${e.message}`);
       }
 
+      console.log(`[scan] ${ville} — PAP…`);
       // PAP
       try {
         const pap = await scrapePAP(browser, ville, budgetMax || 400000, surfMin || 0);
+        console.log(`[scan] ${ville} — PAP: ${pap.length} annonces`);
         allListings.push(...pap);
       } catch (e) {
-        console.error(`PAP ${ville}:`, e.message);
+        console.error(`[scan] PAP ${ville}:`, e.message);
+        errors.push(`PAP ${ville}: ${e.message}`);
       }
     }
 
@@ -347,7 +368,7 @@ app.post('/api/scan', async (req, res) => {
       return true;
     });
 
-    res.json({ success: true, count: listings.length, listings });
+    res.json({ success: true, count: listings.length, listings, errors: errors.length ? errors : undefined });
   } catch (e) {
     if (browser) await browser.close().catch(() => {});
     res.status(500).json({ success: false, error: e.message });
@@ -361,7 +382,11 @@ app.post('/api/scrape', async (req, res) => {
 
   let browser;
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({
+      headless: true,
+      executablePath: CHROMIUM_PATH,
+      args: ['--ignore-certificate-errors', '--no-sandbox', '--disable-setuid-sandbox'],
+    });
     const { page, ctx } = await newPage(browser);
 
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
