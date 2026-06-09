@@ -828,7 +828,7 @@ async function analyzeUrl(rawUrl){
     const a=processAndShowListing(apt,url.href);
     const rn=a.loyer&&a.prix?(a.loyer*12/a.prix*100).toFixed(2):null;
     const cf=a.loyer&&a.prix?Math.round(a.loyer-(a.prix*1.085*0.004+a.loyer*0.07)):null;
-    res.innerHTML=`<div class="an-card" onclick="openModal('${a.id}')">
+    res.innerHTML=`<div class="an-card" onclick="openM('${a.id}')">
       ${a.photo?`<img src="${esc(a.photo)}" class="an-card-img" onerror="this.style.display='none'">`:
         '<div class="an-card-img an-no-photo">📷</div>'}
       <div class="an-card-body">
@@ -982,14 +982,31 @@ Return ONLY a JSON object (no other text) with these fields:
 
 function processAndShowListing(apt,url){
   const id='an_'+Date.now();
+  const isLBC=url.includes('leboncoin.fr'),isPAP=url.includes('pap.fr');
+  const not=NO(),ne=NE();
+  const prix=Number(apt.prix)||0;
+  const loyer=Number(apt.loyer)||estL(apt.ville||apt.quartier||'',Number(apt.surf)||0);
+  const calc=prix>0?calcR(prix*(1-ne/100),loyer,not):{rb:0,rn:0,cf:0,pt:prix};
   const a={
-    id,titre:apt.titre||'Appartement',prix:Number(apt.prix)||0,loyer:Number(apt.loyer)||0,
-    surf:Number(apt.surf)||0,rooms:Number(apt.rooms)||0,
-    cp:apt.cp||'',quartier:apt.quartier||apt.ville||'',ville:apt.ville||'',
-    desc:apt.desc||'',agence:apt.agence||'',phone:apt.phone||'',
-    ref:apt.ref||'',photo:apt.photo||'',url:url||apt.url||'',
-    urlEstExacte:true,src:apt.src||'URL',
-    ts:Date.now()
+    id,
+    titre:apt.titre||'Appartement',
+    prix,loyer,
+    surf:Number(apt.surf)||0,
+    pieces:Number(apt.rooms)||Number(apt.pieces)||0,
+    cp:apt.cp||'',
+    quartier:apt.quartier||apt.ville||'',
+    ville:apt.ville||apt.quartier||'',
+    desc:apt.desc||'',
+    agence:(apt.agence&&apt.agence!=='Particulier')?apt.agence:'',
+    phone:apt.phone||'',
+    ref:apt.ref||'',
+    photo:apt.photo||'',
+    url:url||apt.url||'',
+    urlEstExacte:true,
+    source:isLBC?'LeBonCoin':isPAP?'PAP':(apt.src||'Annonce'),
+    sk:isLBC?'leboncoin':isPAP?'pap':'other',
+    ...calc,thr:T(),not,ne,
+    createdAt:new Date().toISOString(),ts:Date.now()
   };
   R.unshift(a);
   localStorage.setItem('ic_R',JSON.stringify(R.slice(0,200)));
@@ -1002,9 +1019,9 @@ function renderAll(){
   document.getElementById('empt').style.display=R.length?'none':'flex';
   document.getElementById('cgrid').style.display=R.length?'grid':'none';
   if(!R.length)return;
-  const good=R.filter(r=>r.rn>=t).length;
+  const good=R.filter(r=>(r.rn||0)>=t).length;
   const wdirect=R.filter(r=>r.urlEstExacte).length;
-  const best=Math.max(...R.map(r=>r.rn));
+  const best=Math.max(0,...R.map(r=>r.rn||0));
   document.getElementById('sbar').classList.add('show');
   document.getElementById('frow').classList.add('show');
   document.getElementById('sn').textContent=R.length;
@@ -1033,7 +1050,7 @@ function renderAll(){
 const PH_FALLBACK="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=&quot;cph-ph&quot;>🏠</div>')";
 
 function mkCard(a,i){
-  const c=cc(a.rn);
+  const c=cc(a.rn||0);
   const roiColor=COLS[c];
   const pm=a.surf?fmt(a.prix/a.surf)+' €/m²':'—';
   const isLBC=a.sk==='leboncoin',isPAP=a.sk==='pap';
@@ -1068,13 +1085,14 @@ function mkCard(a,i){
       <div class="row">🔗 Voir l'annonce</div></a>`;
   }
 
-  const cfColor=a.cf>=0?'var(--g)':'var(--r)';
-  const cfTxt=(a.cf>=0?'+':'')+fmt(a.cf)+'€';
+  const cf2=a.cf||0;
+  const cfColor=cf2>=0?'var(--g)':'var(--r)';
+  const cfTxt=(cf2>=0?'+':'')+fmt(cf2)+'€';
 
   return `<article class="card" data-id="${a.id}">
     <div class="cphoto">
       ${photo}
-      <span class="roi-badge" style="background:${roiColor}">${a.rn.toFixed(1)}%</span>
+      <span class="roi-badge" style="background:${roiColor}">${(a.rn||0).toFixed(1)}%</span>
       <span class="src-badge ${srcCls}">${srcLbl}</span>
       <div class="cph-ov"><div class="pr">${fmt(a.prix)} €</div><div class="pm">${pm}</div></div>
     </div>
@@ -1083,7 +1101,7 @@ function mkCard(a,i){
       ${tit}
       ${contact}
       <div class="metrics">
-        <div class="metric"><div class="v" style="color:${cfColor}">${cfTxt}</div><div class="l">Cashflow/mois</div></div>
+        <div class="metric"><div class="v" style="color:${cfColor}">${cf2?cfTxt:'—'}</div><div class="l">Cashflow/mois</div></div>
         <div class="metric"><div class="v">${a.surf||'—'} m²</div><div class="l">Surface</div></div>
         <div class="metric"><div class="v">${a.surf?fmt(a.prix/a.surf):'—'}</div><div class="l">€/m²</div></div>
       </div>
@@ -1140,15 +1158,16 @@ function openM(id){
   document.getElementById('m-ct').innerHTML=ct;
 
   // financials
-  const rnEl=document.getElementById('m-rn');rnEl.textContent=a.rn.toFixed(2)+'%';rnEl.style.color=COLS[cc(a.rn)];
-  document.getElementById('m-rb').textContent=a.rb.toFixed(2)+'%';
-  const cfEl=document.getElementById('m-cf');cfEl.textContent=(a.cf>=0?'+':'')+fmt(a.cf)+'€';cfEl.style.color=a.cf>=0?'var(--g)':'var(--r)';
-  document.getElementById('m-tot').textContent=fmt(a.pt)+'€';
+  const rn=a.rn||0,rb=a.rb||0,cf=a.cf||0,pt=a.pt||a.prix||0;
+  const rnEl=document.getElementById('m-rn');rnEl.textContent=rn.toFixed(2)+'%';rnEl.style.color=COLS[cc(rn)];
+  document.getElementById('m-rb').textContent=rb.toFixed(2)+'%';
+  const cfEl=document.getElementById('m-cf');cfEl.textContent=(cf>=0?'+':'')+fmt(cf)+'€';cfEl.style.color=cf>=0?'var(--g)':'var(--r)';
+  document.getElementById('m-tot').textContent=fmt(pt)+'€';
 
   // reset nego
   document.getElementById('mnp').value='';
   document.getElementById('mne').value='';
-  const mnr=document.getElementById('mnr');mnr.textContent=a.rn.toFixed(2)+'%';mnr.style.color=COLS[cc(a.rn)];
+  const mnr=document.getElementById('mnr');mnr.textContent=(a.rn||0).toFixed(2)+'%';mnr.style.color=COLS[cc(a.rn||0)];
 
   // data table
   const rows=[
