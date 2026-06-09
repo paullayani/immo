@@ -432,147 +432,111 @@ function addVHero(){
 }
 function rmV(i){VV.splice(i,1);localStorage.setItem('ic_V',JSON.stringify(VV));renderVV();}
 
-/* ===== SCRAPING (no API key needed) ===== */
-async function fetchViaProxy(url){
-  const proxies=[
-    'https://corsproxy.io/?url=',
-    'https://api.allorigins.win/raw?url=',
-    'https://cors-anywhere.herokuapp.com/'
-  ];
-  for(const px of proxies){
-    try{
-      const r=await fetch(px+encodeURIComponent(url),{
-        signal:AbortSignal.timeout(15000),
-        headers:{'User-Agent':'Mozilla/5.0 (compatible; ImmoScout/1.0)'}
-      });
-      if(r.ok){const txt=await r.text();if(txt.length>500)return txt;}
-    }catch{}
-  }
+/* ===== GEOCODING (Nominatim, CORS-enabled, no key needed) ===== */
+async function getCoords(ville){
+  try{
+    const r=await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(ville+', France')}&format=json&limit=1&addressdetails=0`,
+      {headers:{'Accept-Language':'fr','User-Agent':'ImmoScout/1.0'},signal:AbortSignal.timeout(8000)}
+    );
+    const d=await r.json();
+    if(d.length)return{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)};
+  }catch(e){console.warn('Geocoding:',e.message);}
   return null;
 }
 
-function parseLBCSearchPage(html,ville){
-  const results=[];
-  try{
-    const m=html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-    if(!m)return results;
-    const data=JSON.parse(m[1]);
-    // Try multiple paths where LBC stores ads
-    const ads=data?.props?.pageProps?.searchData?.ads
-      ||data?.props?.pageProps?.ads
-      ||data?.props?.pageProps?.initialData?.ads
-      ||data?.props?.pageProps?.adListData?.ads
-      ||[];
-    for(const ad of ads){
-      try{
-        const attrs=ad.attributes||[];
-        const get=k=>{const a=attrs.find(x=>x.key===k);return a?a.value_label||a.value||'':''};
-        const surf=parseInt(get('square'))||parseInt(get('surface_habitable_m2'))||0;
-        const rooms=parseInt(get('rooms'))||parseInt(get('nb_rooms_display'))||0;
-        const prix=parseInt(ad.price?.[0])||parseInt(ad.price)||0;
-        if(!prix||prix<=0)continue;
-        const photos=ad.images?.urls_large||ad.images?.urls||[];
-        const listId=String(ad.list_id||ad.id||'');
-        if(!listId)continue;
-        results.push({
-          id:listId,
-          titre:ad.subject||ad.title||'Appartement',
-          prix,surf,rooms,pieces:rooms,
-          cp:ad.location?.zipcode||'',
-          quartier:ad.location?.city||ad.location?.region_name||ville,
-          ville:ad.location?.city||ville,
-          desc:(ad.body||'').slice(0,200),
-          agence:ad.owner?.type==='pro'?(ad.owner?.name||''):'',
-          phone:'',
-          ref:listId,
-          photo:photos[0]||'',
-          photos:photos.slice(0,6),
-          url:`https://www.leboncoin.fr/ad/immobilier/${listId}`,
-          urlEstExacte:true,
-          source:'LeBonCoin',sk:'leboncoin',
-          createdAt:ad.first_publication_date||new Date().toISOString()
-        });
-      }catch{}
-    }
-  }catch(e){console.warn('parseLBC',e);}
-  return results;
-}
+/* ===== LEBONCOIN API (mobile app endpoint) ===== */
+const LBC_KEY='ba0c2dad52b3565c9a1f8c7ef073a2b4';
+const LBC_API='https://api.leboncoin.fr/api/search/v4/';
 
-async function scanLeBonCoin(ville,budgetMax,surfMin){
-  const params=new URLSearchParams({
-    category:'9',
-    locations:ville,
-    price:`min=1,max=${budgetMax}`,
-    real_estate_type:'1,2,3',
-    sort:'time',order:'desc'
-  });
-  if(surfMin)params.set('square',`min=${surfMin}`);
-  // Try multiple URL formats
-  const urls=[
-    `https://www.leboncoin.fr/recherche?${params.toString()}`,
-    `https://www.leboncoin.fr/recherche?category=9&locations=${encodeURIComponent(ville)}&price=1-${budgetMax}&real_estate_type=1,2,3${surfMin?'&square='+surfMin+'-600':''}&sort=time&order=desc`
+async function callLBCApi(body){
+  // 1) Direct call (works if LBC sends CORS headers)
+  // 2) via corsproxy.io (supports POST + header forwarding)
+  const targets=[
+    {url:LBC_API,direct:true},
+    {url:'https://corsproxy.io/?url='+encodeURIComponent(LBC_API),direct:false},
+    {url:'https://proxy.cors.sh/'+LBC_API,direct:false},
   ];
-  for(const url of urls){
-    const html=await fetchViaProxy(url);
-    if(!html)continue;
-    const ads=parseLBCSearchPage(html,ville);
-    if(ads.length>0)return ads;
+  for(const t of targets){
+    try{
+      const headers={'Content-Type':'application/json','Accept':'application/json','api_key':LBC_KEY};
+      if(!t.direct)headers['x-requested-with']='XMLHttpRequest';
+      const r=await fetch(t.url,{
+        method:'POST',headers,
+        body:JSON.stringify(body),
+        signal:AbortSignal.timeout(18000)
+      });
+      if(!r.ok){console.warn('LBC API HTTP',r.status,'via',t.url);continue;}
+      const data=await r.json();
+      const ads=data.ads||[];
+      if(ads.length>0){console.log('LBC API OK via',t.url,ads.length,'ads');return ads;}
+    }catch(e){console.warn('LBC API fail via',t.url,':',e.message);}
   }
   return[];
 }
 
-async function scanPAP(ville,budgetMax,surfMin){
-  const results=[];
-  try{
-    const params=new URLSearchParams({
-      typeTransaction:'vente',
-      typeLogement:'appartement',
-      geo_objets_ids:ville,
-      prixMax:budgetMax,
-      ...(surfMin?{surfaceMin:surfMin}:{})
-    });
-    const url=`https://www.pap.fr/annonce/ventes-appartements-${encodeURIComponent(ville.toLowerCase())}-g439?${params}`;
-    const html=await fetchViaProxy(url);
-    if(!html)return results;
-    // Parse JSON-LD listings
-    const scripts=html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)||[];
-    for(const s of scripts){
-      try{
-        const j=JSON.parse(s.replace(/<script[^>]*>/,'').replace(/<\/script>/,''));
-        const items=j['@type']==='ItemList'?j.itemListElement?.map(x=>x.item)||[]:[j];
-        for(const item of items){
-          if(!item.price&&!item.offers?.price)continue;
-          const prix=parseInt(item.price||item.offers?.price||0);
-          if(!prix)continue;
-          results.push({
-            id:'pap_'+Math.random().toString(36).slice(2),
-            titre:item.name||'Appartement PAP',
-            prix,
-            surf:parseFloat(item.floorSize?.value||item.floorSize||0),
-            rooms:parseInt(item.numberOfRooms||0),
-            pieces:parseInt(item.numberOfRooms||0),
-            cp:item.address?.postalCode||'',
-            quartier:item.address?.addressLocality||ville,
-            ville:item.address?.addressLocality||ville,
-            desc:(item.description||'').slice(0,200),
-            agence:item.author?.name||'',
-            phone:item.author?.telephone||'',
-            ref:'',
-            photo:Array.isArray(item.image)?item.image[0]:item.image||'',
-            photos:Array.isArray(item.image)?item.image.slice(0,6):[item.image||''].filter(Boolean),
-            url:item.url||'https://www.pap.fr',
-            urlEstExacte:!!item.url,
-            source:'PAP',sk:'pap',
-            createdAt:new Date().toISOString()
-          });
-        }
-      }catch{}
-    }
-  }catch(e){console.warn('scanPAP',e);}
-  return results;
+function convertLBCAd(ad,ville){
+  const attrs=ad.attributes||[];
+  const get=k=>{const a=attrs.find(x=>x.key===k);return a?a.value_label||a.value||'':''};
+  const listId=String(ad.list_id||ad.id||'');
+  const photos=ad.images?.urls_large||ad.images?.urls||[];
+  const surf=parseInt(get('square'))||parseInt(get('surface_habitable_m2'))||0;
+  const rooms=parseInt(get('rooms'))||parseInt(get('nb_rooms_display'))||0;
+  const prix=parseInt(ad.price?.[0])||parseInt(ad.price)||0;
+  return{
+    id:listId||'lbc_'+Math.random().toString(36).slice(2),
+    titre:ad.subject||'Appartement',prix,surf,rooms,pieces:rooms,
+    cp:ad.location?.zipcode||'',
+    quartier:ad.location?.city||ville,
+    ville:ad.location?.city||ville,
+    desc:(ad.body||'').slice(0,200),
+    agence:ad.owner?.type==='pro'?(ad.owner?.name||''):'',
+    phone:'',ref:listId,
+    photo:photos[0]||'',photos:photos.slice(0,6),
+    url:listId?`https://www.leboncoin.fr/ad/immobilier/${listId}`:'',
+    urlEstExacte:!!listId,source:'LeBonCoin',sk:'leboncoin',
+    createdAt:ad.first_publication_date||new Date().toISOString()
+  };
+}
+
+async function scanLeBonCoin(ville,budgetMax,surfMin){
+  const coords=await getCoords(ville)||{lat:48.8566,lng:2.3522};
+  const body={
+    limit:35,
+    filters:{
+      category:{id:'9'},
+      enums:{ad_type:['offer'],real_estate_type:['1','2','3']},
+      location:{area:{lat:coords.lat,lng:coords.lng,radius:25000}},
+      ranges:{
+        price:{max:budgetMax},
+        ...(surfMin>0?{square:{min:surfMin}}:{})
+      }
+    },
+    sort_by:'time',sort_order:'desc',pivot:'0,0,0'
+  };
+  const ads=await callLBCApi(body);
+  return ads.map(ad=>convertLBCAd(ad,ville));
 }
 
 /* ===== SCAN ===== */
+function buildSearchLinks(budgetMax,surfMin){
+  return VV.map(v=>{
+    const lbc=`https://www.leboncoin.fr/recherche?category=9&locations=${encodeURIComponent(v)}&price=1-${budgetMax}&real_estate_type=1,2,3${surfMin?'&square='+surfMin+'-600':''}&sort=time&order=desc`;
+    const sl=`https://www.seloger.com/immobilier/achat/immo-${encodeURIComponent(v.toLowerCase().replace(/\s/g,'-'))}/appartement/?prix_max=${budgetMax}${surfMin?'&surface_min='+surfMin:''}`;
+    const pap=`https://www.pap.fr/annonce/ventes-appartements-${encodeURIComponent(v.toLowerCase().replace(/\s/g,'-'))}-g439?prixMax=${budgetMax}${surfMin?'&surfaceMin='+surfMin:''}`;
+    const bienici=`https://www.bienici.com/recherche/achat/france/appartement?prix-max=${budgetMax}${surfMin?'&surface-min='+surfMin:''}&localisation=${encodeURIComponent(v)}`;
+    return`<div style="margin-bottom:14px">
+      <div style="font-weight:700;font-size:14px;color:#1e3a5f;margin-bottom:7px">📍 ${esc(v)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">
+        <a href="${lbc}" target="_blank" style="background:#2563eb;color:#fff;padding:8px 13px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none">LeBonCoin →</a>
+        <a href="${sl}" target="_blank" style="background:#ef4444;color:#fff;padding:8px 13px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none">SeLoger →</a>
+        <a href="${pap}" target="_blank" style="background:#10b981;color:#fff;padding:8px 13px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none">PAP.fr →</a>
+        <a href="${bienici}" target="_blank" style="background:#8b5cf6;color:#fff;padding:8px 13px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none">Bien'ici →</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 async function startScan(){
   if(scanning)return;
   if(!VV.length){toast('⚠️ Ajoutez au moins une ville');return;}
@@ -584,28 +548,21 @@ async function startScan(){
   document.getElementById('err-banner').classList.remove('show');
   document.getElementById('cgrid').innerHTML='';
   const allListings=[];
-  let totalErrors=0;
   try{
     const maxV=Math.min(VV.length,5);
     for(let i=0;i<maxV;i++){
       const ville=VV[i];
-      setP(5+(i/maxV)*80,'Scan LeBonCoin — '+ville+'…');
+      setP(10+(i/maxV)*75,'Géolocalisation + scan LeBonCoin — '+ville+'…');
       try{
-        const lbcAds=await scanLeBonCoin(ville,BU(),SM());
-        allListings.push(...lbcAds);
-        if(lbcAds.length)toast('✅ '+ville+' : '+lbcAds.length+' annonces LeBonCoin',3000);
-      }catch(e){totalErrors++;console.warn('LBC',ville,e);}
-      setP(5+(i/maxV)*80+30/maxV,'Scan PAP.fr — '+ville+'…');
-      try{
-        const papAds=await scanPAP(ville,BU(),SM());
-        allListings.push(...papAds);
-        if(papAds.length)toast('✅ '+ville+' (PAP) : '+papAds.length+' annonces',3000);
-      }catch(e){totalErrors++;console.warn('PAP',ville,e);}
+        const ads=await scanLeBonCoin(ville,BU(),SM());
+        allListings.push(...ads);
+        if(ads.length)toast('✅ '+ville+' : '+ads.length+' annonces',3000);
+      }catch(e){console.warn('Scan',ville,e);}
     }
     setP(90,'Calcul des rentabilités…');
     const seen=new Set();
     R=allListings
-      .filter(l=>{if(!l.prix||l.prix<=0)return false;if(seen.has(l.url))return false;seen.add(l.url);return true;})
+      .filter(l=>{if(!l.prix||l.prix<=0)return false;if(seen.has(l.url||l.id))return false;seen.add(l.url||l.id);return true;})
       .map(l=>{
         const loyer=estL(l.ville||'',l.surf||0);
         const calc=calcR(l.prix,loyer);
@@ -616,13 +573,11 @@ async function startScan(){
 
     if(!R.length){
       const eb=document.getElementById('err-banner');
-      if(totalErrors>0){
-        eb.innerHTML=`⚠️ Le scan a rencontré des difficultés à accéder à LeBonCoin.<br>
-          Réessayez dans quelques secondes, ou cherchez directement sur
-          ${VV.map(v=>`<a href="https://www.leboncoin.fr/recherche?category=9&locations=${encodeURIComponent(v)}&price=1-${BU()}&real_estate_type=1,2,3${SM()?'&square='+SM()+'-600':''}" target="_blank">LeBonCoin ${v}</a>`).join(', ')}.`;
-      }else{
-        eb.innerHTML=`Aucune annonce trouvée pour ces critères. Essayez d'élargir le budget ou d'ajouter d'autres villes.`;
-      }
+      eb.innerHTML=`<div style="font-size:15px;font-weight:700;color:#7f1d1d;margin-bottom:10px">⚠️ LeBonCoin n'a pas pu être contacté</div>
+        <div style="color:#991b1b;margin-bottom:14px;font-size:13.5px">L'API de LeBonCoin bloque les accès depuis un fichier HTML local. C'est une limitation technique des navigateurs.<br>
+        En attendant, voici les recherches directement filtrées avec vos critères (budget ${fmt(BU())} €${SM()?' · '+SM()+' m² min':''}) :</div>
+        ${buildSearchLinks(BU(),SM())}
+        <div style="font-size:12px;color:#9ca3af;margin-top:6px">Ces liens ouvrent directement les annonces filtrées sur chaque site.</div>`;
       eb.classList.add('show');
       document.getElementById('hero').style.display='block';
       setP(0,'');document.getElementById('pbar').classList.remove('show');
