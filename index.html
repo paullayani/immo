@@ -220,11 +220,52 @@ table.dtable td:last-child{font-weight:600;text-align:right}
   z-index:90;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ---------- URL ANALYZER ---------- */
+.an-box{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:22px;margin-bottom:22px;box-shadow:0 2px 12px rgba(15,23,42,.05)}
+.an-head{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.an-head h2{font-family:var(--fh);font-size:18px;font-weight:700}
+.an-badge{background:var(--g);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px}
+.an-sub{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:16px;max-width:640px}
+.an-row{display:flex;gap:10px;flex-wrap:wrap}
+#an-url{flex:1;min-width:240px;padding:13px 16px;border:1.5px solid var(--line);border-radius:11px;font-size:14px;background:#f8fafc;transition:border-color .15s,box-shadow .15s}
+#an-url:focus{border-color:var(--g);background:#fff;outline:none;box-shadow:0 0 0 3px rgba(5,150,105,.1)}
+#an-btn{border:none;background:var(--g);color:#fff;border-radius:11px;padding:13px 24px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .12s}
+#an-btn:hover{background:#047857}
+#an-btn:disabled{opacity:.5;cursor:not-allowed}
+.an-loading{padding:14px;text-align:center;color:var(--muted);font-size:14px;font-weight:500;margin-top:12px}
+.an-err{padding:12px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:13px;font-weight:600;margin-top:12px;line-height:1.5}
+.an-need-key{padding:16px 18px;background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;font-size:13.5px;line-height:1.7;margin-top:12px;color:#92400e}
+.an-need-key strong{display:block;font-size:14px;margin-bottom:6px;color:var(--ink)}
+.an-need-key button{color:var(--blue);background:none;border:none;cursor:pointer;font-size:13.5px;font-weight:700;padding:0;text-decoration:underline}
+/* URL Analyzer result card */
+.an-success{font-size:12.5px;color:var(--g);font-weight:600;margin-top:8px;text-align:center}
+.an-card{display:flex;gap:14px;background:#f8fafc;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:14px;cursor:pointer;transition:box-shadow .15s}
+.an-card:hover{box-shadow:0 4px 18px rgba(15,23,42,.12)}
+.an-card-img{width:140px;min-height:120px;object-fit:cover;flex-shrink:0;background:#e2e8f0}
+.an-no-photo{display:flex;align-items:center;justify-content:center;font-size:28px;color:#94a3b8}
+.an-card-body{padding:14px 16px 14px 0;flex:1;min-width:0}
+.an-card-title{font-family:var(--fh);font-size:15px;font-weight:700;color:var(--ink);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an-card-loc{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+.an-card-stats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.an-stat{font-size:12px;font-weight:700;padding:3px 8px;border-radius:20px;background:#e2e8f0;color:var(--ink)}
+.an-good{background:#d1fae5;color:#065f46}.an-ok{background:#fef3c7;color:#92400e}.an-bad{background:#fee2e2;color:#991b1b}
+.an-card-ag{font-size:12px;color:var(--muted);margin-bottom:3px}
+.an-card-ref{font-size:11.5px;color:#94a3b8;margin-bottom:5px}
+.an-card-link a{font-size:12.5px;color:var(--blue);font-weight:600;text-decoration:none}
+.an-card-link a:hover{text-decoration:underline}
+/* How-to steps in empty state */
+.how-steps{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0;text-align:left;max-width:640px}
+.how-step{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}
+.how-step .hs-num{width:28px;height:28px;border-radius:50%;background:var(--g);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.how-step h3{font-family:var(--fh);font-size:15px;margin-bottom:5px}
+.how-step p{font-size:12.5px;color:var(--muted);line-height:1.6}
+
 @media(max-width:860px){
   .hctr{order:3;flex-basis:100%;overflow-x:auto;flex-wrap:nowrap}
   .tags{max-width:none}
   header{flex-wrap:wrap;height:auto;padding:10px 14px;gap:10px}
   .scores{grid-template-columns:repeat(2,1fr)}
+  .how-steps{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -266,6 +307,23 @@ table.dtable td:last-child{font-weight:600;text-align:right}
 <main>
   <!-- SCAN PANEL -->
   <div id="scanpanel">
+
+    <!-- URL ANALYZER — Fonctionnalité principale -->
+    <div class="an-box">
+      <div class="an-head">
+        <h2>🏠 Analyser une annonce</h2>
+        <span class="an-badge">Fonctionne sur tous les sites</span>
+      </div>
+      <p class="an-sub">Vous avez trouvé un appartement intéressant sur LeBonCoin, PAP.fr, SeLoger ou autre ?<br>
+        <strong>Copiez son URL et collez-la ici</strong> — le logiciel calcule instantanément la rentabilité, le cashflow et affiche toutes les informations.</p>
+      <div class="an-row">
+        <input id="an-url" type="url" placeholder="https://www.leboncoin.fr/ad/immobilier/2456789012"
+          onkeydown="if(event.key==='Enter')analyzeUrl(this.value)">
+        <button id="an-btn" onclick="analyzeUrl(document.getElementById('an-url').value)">🔍 Analyser ce bien</button>
+      </div>
+      <div id="an-result"></div>
+    </div>
+
     <div id="sbar">
       <span><b id="sn">0</b> annonces</span>
       <span><b id="sg">0</b> rentables</span>
@@ -287,9 +345,34 @@ table.dtable td:last-child{font-weight:600;text-align:right}
 
     <div class="empt-state" id="empt">
       <div class="big">🏙️</div>
-      <h2>Lancez votre premier scan</h2>
-      <p>Ajoutez des villes, votre budget et votre surface minimum, puis cliquez sur <b>Scanner</b>.
-      Claude recherche de vraies annonces sur LeBonCoin et PAP.fr, visite chaque page et calcule la rentabilité.</p>
+      <h2>Comment démarrer</h2>
+      <p>Deux façons d'utiliser ImmoScout. Les deux nécessitent une clé API Anthropic (gratuite).</p>
+      <div class="how-steps">
+        <div class="how-step">
+          <div class="hs-num">1</div>
+          <h3>Analyser une annonce (recommandé)</h3>
+          <p>Trouvez un appartement sur LeBonCoin ou PAP.fr, copiez son URL et collez-la dans la zone "Analyser une annonce" ci-dessus. Vous obtenez immédiatement la rentabilité, le cashflow et toutes les informations.</p>
+        </div>
+        <div class="how-step">
+          <div class="hs-num">2</div>
+          <h3>Scanner automatiquement</h3>
+          <p>Ajoutez vos villes et votre budget dans la barre en haut, puis cliquez sur <strong>Scanner</strong>. Claude recherche des annonces sur LeBonCoin et PAP.fr et vous propose les meilleures opportunités.</p>
+        </div>
+        <div class="how-step">
+          <div class="hs-num">🔑</div>
+          <h3>Obtenir une clé API (2 min)</h3>
+          <p>1. Allez sur <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue);font-weight:600">console.anthropic.com</a><br>
+          2. Créez un compte gratuit<br>
+          3. Cliquez "API Keys" → "Create Key"<br>
+          4. Copiez la clé (sk-ant-...)<br>
+          5. Collez-la dans <button onclick="openSettings()" style="color:var(--blue);background:none;border:none;cursor:pointer;font-weight:700;padding:0;font-size:12.5px">⚙️ Paramètres</button></p>
+        </div>
+        <div class="how-step">
+          <div class="hs-num">💡</div>
+          <h3>Ce que vous obtenez</h3>
+          <p>Pour chaque bien : rentabilité nette, cashflow mensuel, simulation de négociation, lien direct vers l'annonce exacte, téléphone de l'agence ou du propriétaire.</p>
+        </div>
+      </div>
     </div>
     <div id="cgrid"></div>
   </div>
@@ -724,6 +807,194 @@ function toggleSave(id){
 }
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+/* ===================== URL ANALYZER ===================== */
+async function analyzeUrl(rawUrl){
+  const res=document.getElementById('an-result');
+  rawUrl=(rawUrl||'').trim();
+  if(!rawUrl){res.innerHTML='<div class="an-err">⚠️ Collez d\'abord une URL dans le champ ci-dessus.</div>';return;}
+  let url;
+  try{url=new URL(rawUrl);}catch{res.innerHTML='<div class="an-err">⚠️ URL invalide. Exemple : https://www.leboncoin.fr/ad/immobilier/2456789012</div>';return;}
+  res.innerHTML='<div class="an-loading">⏳ Analyse en cours…</div>';
+  document.getElementById('an-btn').disabled=true;
+  try{
+    let apt=await tryFetchAndParse(url.href);
+    if(!apt&&AK){apt=await analyzeWithClaude(url.href);}
+    if(!apt){
+      res.innerHTML=`<div class="an-err">❌ Impossible d'analyser cette annonce automatiquement.<br>
+        ${!AK?'<span class="an-need-key">💡 Ajoutez votre clé Anthropic (⚙️ Réglages) pour une analyse complète.</span>':''}</div>`;
+      return;
+    }
+    const a=processAndShowListing(apt,url.href);
+    const rn=a.loyer&&a.prix?(a.loyer*12/a.prix*100).toFixed(2):null;
+    const cf=a.loyer&&a.prix?Math.round(a.loyer-(a.prix*1.085*0.004+a.loyer*0.07)):null;
+    res.innerHTML=`<div class="an-card" onclick="openModal('${a.id}')">
+      ${a.photo?`<img src="${esc(a.photo)}" class="an-card-img" onerror="this.style.display='none'">`:
+        '<div class="an-card-img an-no-photo">📷</div>'}
+      <div class="an-card-body">
+        <div class="an-card-title">${esc(a.titre||'Appartement analysé')}</div>
+        <div class="an-card-loc">📍 ${esc(a.quartier||a.ville||'')}</div>
+        <div class="an-card-stats">
+          ${a.prix?`<span class="an-stat">💰 ${a.prix.toLocaleString('fr-FR')}€</span>`:''}
+          ${a.surf?`<span class="an-stat">📐 ${a.surf}m²</span>`:''}
+          ${a.loyer?`<span class="an-stat">🔑 ${a.loyer}€/mois</span>`:''}
+          ${rn?`<span class="an-stat ${parseFloat(rn)>=7?'an-good':parseFloat(rn)>=5?'an-ok':'an-bad'}">📈 ${rn}% brut</span>`:''}
+          ${cf!==null?`<span class="an-stat ${cf>=0?'an-good':'an-bad'}">💵 CF ${cf>=0?'+':''}${cf}€/mois</span>`:''}
+        </div>
+        ${a.agence?`<div class="an-card-ag">🏢 ${esc(a.agence)}${a.phone?' — 📞 '+esc(a.phone):''}</div>`:''}
+        ${a.ref?`<div class="an-card-ref">Réf: ${esc(a.ref)}</div>`:''}
+        <div class="an-card-link"><a href="${esc(url.href)}" target="_blank" onclick="event.stopPropagation()">🔗 Voir l'annonce originale →</a></div>
+      </div>
+    </div>
+    <div class="an-success">✅ Bien ajouté à votre liste — cliquez sur la carte pour voir tous les détails</div>`;
+    renderAll();
+  }catch(e){
+    res.innerHTML=`<div class="an-err">❌ Erreur : ${esc(e.message||String(e))}</div>`;
+  }finally{
+    document.getElementById('an-btn').disabled=false;
+  }
+}
+
+async function tryFetchAndParse(url){
+  const proxies=['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url='];
+  for(const px of proxies){
+    try{
+      const r=await fetch(px+encodeURIComponent(url),{signal:AbortSignal.timeout(10000)});
+      if(!r.ok)continue;
+      const html=await r.text();
+      if(url.includes('leboncoin.fr')){const a=parseLBC(html,url);if(a)return a;}
+      else if(url.includes('pap.fr')){const a=parsePAP(html,url);if(a)return a;}
+      else{
+        const a=parsePAP(html,url);
+        if(a&&(a.prix||a.loyer))return a;
+      }
+    }catch{}
+  }
+  return null;
+}
+
+function parseLBC(html,url){
+  try{
+    const m=html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if(!m)return null;
+    const data=JSON.parse(m[1]);
+    const ad=data?.props?.pageProps?.ad||data?.props?.pageProps?.adView?.ad||null;
+    if(!ad)return null;
+    const attrs=ad.attributes||[];
+    const get=k=>{const a=attrs.find(x=>x.key===k);return a?a.value_label||a.value||'':''};
+    const price=ad.price?.[0]||ad.price_cents/100||0;
+    const surf=parseInt(get('square'))||parseInt(get('surface'))||0;
+    const rooms=parseInt(get('rooms'))||parseInt(get('room_count'))||0;
+    const photos=(ad.images?.urls_large||ad.images?.urls||[]).slice(0,1);
+    return{
+      titre:ad.subject||ad.title||'Appartement LeBonCoin',
+      prix:price||0,loyer:0,surf,rooms,
+      cp:ad.location?.zipcode||get('zipcode')||'',
+      quartier:ad.location?.city||ad.location?.region_name||'',
+      ville:ad.location?.city||'',
+      desc:ad.body||'',
+      agence:ad.owner?.name||'Particulier',
+      phone:ad.owner?.store_infos?.phone||ad.owner?.phone||'',
+      ref:String(ad.list_id||ad.id||''),
+      photo:photos[0]||'',
+      url,urlEstExacte:true,src:'LeBonCoin',
+      loyer:parseInt(get('rent'))||0
+    };
+  }catch{return null;}
+}
+
+function parsePAP(html,url){
+  try{
+    const jld=html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)||[];
+    for(const s of jld){
+      try{
+        const j=JSON.parse(s.replace(/<script[^>]*>/,'').replace(/<\/script>/,''));
+        if(j['@type']==='RealEstateListing'||j['@type']==='Apartment'||j.price||j.offers?.price){
+          const price=parseInt(j.price||j.offers?.price||0);
+          const surf=parseFloat(j.floorSize?.value||j.floorSize||0);
+          const rooms=parseInt(j.numberOfRooms||j.floorLevel||0);
+          return{
+            titre:j.name||j.headline||'Appartement PAP',
+            prix:price,loyer:0,surf,rooms,
+            cp:j.address?.postalCode||'',
+            quartier:j.address?.addressLocality||j.address?.addressRegion||'',
+            ville:j.address?.addressLocality||'',
+            desc:j.description||'',
+            agence:j.author?.name||j.seller?.name||'Particulier',
+            phone:j.author?.telephone||'',ref:'',
+            photo:Array.isArray(j.image)?j.image[0]:j.image||'',
+            url,urlEstExacte:true,src:'PAP'
+          };
+        }
+      }catch{}
+    }
+    const getMeta=p=>{const m=html.match(new RegExp('<meta[^>]+property=["\']'+p+'["\'][^>]+content=["\']([^"\']*)["\']'));return m?m[1]:''};
+    const title=getMeta('og:title')||'Appartement';
+    const img=getMeta('og:image')||'';
+    const desc=getMeta('og:description')||'';
+    const priceM=desc.match(/(\d[\d\s]{2,8})\s*€/);
+    const surfM=desc.match(/(\d+)\s*m²/i);
+    if(title||img){
+      return{titre:title,prix:priceM?parseInt(priceM[1].replace(/\s/g,'')):'',loyer:0,
+        surf:surfM?parseInt(surfM[1]):0,rooms:0,cp:'',quartier:'',ville:'',desc,
+        agence:'',phone:'',ref:'',photo:img,url,urlEstExacte:true,src:'Web'};
+    }
+  }catch{}
+  return null;
+}
+
+async function analyzeWithClaude(url){
+  if(!AK)return null;
+  const prompt=`Visit this real estate listing URL and extract data: ${url}
+Return ONLY a JSON object (no other text) with these fields:
+{"titre":"","prix":0,"loyer":0,"surf":0,"rooms":0,"cp":"","quartier":"","ville":"","desc":"","agence":"","phone":"","ref":"","photo":"","urlEstExacte":true,"src":"Claude"}
+- prix = sale price in euros (number, 0 if rental)
+- loyer = monthly rent in euros (number, 0 if for sale)
+- surf = surface area in m² (number)
+- photo = first photo URL
+- agence = agency name or "Particulier"`;
+  try{
+    const messages=[{role:'user',content:prompt}];
+    const headers={'content-type':'application/json','x-api-key':AK,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+    for(let round=0;round<20;round++){
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,
+        body:JSON.stringify({model:'claude-opus-4-7',max_tokens:4096,
+          tools:[{type:'web_search_20250305',name:'web_search'}],messages})});
+      if(!resp.ok)return null;
+      const data=await resp.json();
+      if(data.stop_reason==='end_turn'){
+        const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+        const m=text.match(/\{[\s\S]*\}/);
+        if(!m)return null;
+        try{const a=JSON.parse(m[0]);a.url=url;return a;}catch{return null;}
+      }
+      if(data.stop_reason==='tool_use'){
+        messages.push({role:'assistant',content:data.content});
+        const tr=(data.content||[]).filter(b=>b.type==='tool_use').map(b=>({type:'tool_result',tool_use_id:b.id,content:''}));
+        if(tr.length)messages.push({role:'user',content:tr});
+        continue;
+      }
+      break;
+    }
+  }catch{}
+  return null;
+}
+
+function processAndShowListing(apt,url){
+  const id='an_'+Date.now();
+  const a={
+    id,titre:apt.titre||'Appartement',prix:Number(apt.prix)||0,loyer:Number(apt.loyer)||0,
+    surf:Number(apt.surf)||0,rooms:Number(apt.rooms)||0,
+    cp:apt.cp||'',quartier:apt.quartier||apt.ville||'',ville:apt.ville||'',
+    desc:apt.desc||'',agence:apt.agence||'',phone:apt.phone||'',
+    ref:apt.ref||'',photo:apt.photo||'',url:url||apt.url||'',
+    urlEstExacte:true,src:apt.src||'URL',
+    ts:Date.now()
+  };
+  R.unshift(a);
+  localStorage.setItem('ic_R',JSON.stringify(R.slice(0,200)));
+  return a;
+}
 
 /* ===================== RENDER ALL ===================== */
 function renderAll(){
