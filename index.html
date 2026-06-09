@@ -449,28 +449,48 @@ async function getCoords(ville){
 const LBC_KEY='ba0c2dad52b3565c9a1f8c7ef073a2b4';
 const LBC_API='https://api.leboncoin.fr/api/search/v4/';
 
-async function callLBCApi(body){
-  // 1) Direct call (works if LBC sends CORS headers)
-  // 2) via corsproxy.io (supports POST + header forwarding)
+async function callLBCApi(body,ville){
+  // When deployed on Netlify (or any web server), use our serverless proxy — no CORS, no blocking
+  if(window.location.protocol!=='file:'){
+    try{
+      const req={
+        lat:body.filters.location.area.lat,
+        lng:body.filters.location.area.lng,
+        budgetMax:body.filters.ranges.price.max,
+        surfMin:body.filters.ranges.square?.min||0,
+        ville:ville||''
+      };
+      const r=await fetch('/api/search',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(req),
+        signal:AbortSignal.timeout(25000)
+      });
+      if(r.ok){
+        const data=await r.json();
+        const ads=data.ads||[];
+        if(ads.length>0){console.log('Got',ads.length,'ads via /api/search ('+data.source+')');return ads;}
+      }
+    }catch(e){console.warn('/api/search failed:',e.message);}
+  }
+  // Running as local file — try direct + proxies (usually blocked by CORS)
   const targets=[
-    {url:LBC_API,direct:true},
-    {url:'https://corsproxy.io/?url='+encodeURIComponent(LBC_API),direct:false},
-    {url:'https://proxy.cors.sh/'+LBC_API,direct:false},
+    {url:LBC_API},
+    {url:'https://corsproxy.io/?url='+encodeURIComponent(LBC_API)},
   ];
   for(const t of targets){
     try{
-      const headers={'Content-Type':'application/json','Accept':'application/json','api_key':LBC_KEY};
-      if(!t.direct)headers['x-requested-with']='XMLHttpRequest';
       const r=await fetch(t.url,{
-        method:'POST',headers,
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json','api_key':LBC_KEY},
         body:JSON.stringify(body),
         signal:AbortSignal.timeout(18000)
       });
-      if(!r.ok){console.warn('LBC API HTTP',r.status,'via',t.url);continue;}
+      if(!r.ok)continue;
       const data=await r.json();
       const ads=data.ads||[];
-      if(ads.length>0){console.log('LBC API OK via',t.url,ads.length,'ads');return ads;}
-    }catch(e){console.warn('LBC API fail via',t.url,':',e.message);}
+      if(ads.length>0)return ads;
+    }catch{}
   }
   return[];
 }
@@ -514,7 +534,7 @@ async function scanLeBonCoin(ville,budgetMax,surfMin){
     },
     sort_by:'time',sort_order:'desc',pivot:'0,0,0'
   };
-  const ads=await callLBCApi(body);
+  const ads=await callLBCApi(body,ville);
   return ads.map(ad=>convertLBCAd(ad,ville));
 }
 
