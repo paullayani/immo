@@ -569,15 +569,34 @@ async function startScan(){
   document.getElementById('cgrid').innerHTML='';
   const allListings=[];
   try{
-    const maxV=Math.min(VV.length,5);
-    for(let i=0;i<maxV;i++){
-      const ville=VV[i];
-      setP(10+(i/maxV)*75,'Géolocalisation + scan LeBonCoin — '+ville+'…');
+    setP(15,'Scan PAP.fr en cours…');
+    // Si on est sur un vrai serveur (Railway/Render), appel direct /api/search
+    if(window.location.protocol!=='file:'){
       try{
-        const ads=await scanLeBonCoin(ville,BU(),SM());
-        allListings.push(...ads);
-        if(ads.length)toast('✅ '+ville+' : '+ads.length+' annonces',3000);
-      }catch(e){console.warn('Scan',ville,e);}
+        const r=await fetch('/api/search',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({villes:VV.slice(0,5),budgetMax:BU(),surfMin:SM()}),
+          signal:AbortSignal.timeout(60000)
+        });
+        if(r.ok){
+          const data=await r.json();
+          allListings.push(...(data.listings||[]));
+          if(data.count>0)toast('✅ '+data.count+' annonces PAP.fr',3000);
+        }
+      }catch(e){console.warn('/api/search:',e.message);}
+    } else {
+      // En local, essayer PAP via proxies (résultats limités mais possibles)
+      const maxV=Math.min(VV.length,5);
+      for(let i=0;i<maxV;i++){
+        const ville=VV[i];
+        setP(15+(i/maxV)*70,'Scan PAP.fr — '+ville+'…');
+        try{
+          const ads=await scanLeBonCoin(ville,BU(),SM());
+          allListings.push(...ads);
+          if(ads.length)toast('✅ '+ville+' : '+ads.length+' annonces',3000);
+        }catch(e){console.warn('Scan',ville,e);}
+      }
     }
     setP(90,'Calcul des rentabilités…');
     const seen=new Set();
@@ -593,8 +612,8 @@ async function startScan(){
 
     if(!R.length){
       const eb=document.getElementById('err-banner');
-      eb.innerHTML=`<div style="font-size:15px;font-weight:700;color:#7f1d1d;margin-bottom:10px">⚠️ LeBonCoin n'a pas pu être contacté</div>
-        <div style="color:#991b1b;margin-bottom:14px;font-size:13.5px">L'API de LeBonCoin bloque les accès depuis un fichier HTML local. C'est une limitation technique des navigateurs.<br>
+      eb.innerHTML=`<div style="font-size:15px;font-weight:700;color:#7f1d1d;margin-bottom:10px">⚠️ Fichier local — scan serveur impossible</div>
+        <div style="color:#991b1b;margin-bottom:14px;font-size:13.5px">Pour voir les vraies annonces, ouvre l'app depuis l'URL Railway/Render.<br>
         En attendant, voici les recherches directement filtrées avec vos critères (budget ${fmt(BU())} €${SM()?' · '+SM()+' m² min':''}) :</div>
         ${buildSearchLinks(BU(),SM())}
         <div style="font-size:12px;color:#9ca3af;margin-top:6px">Ces liens ouvrent directement les annonces filtrées sur chaque site.</div>`;
