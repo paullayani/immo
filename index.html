@@ -612,9 +612,10 @@ async function startScan(){
 
     if(!R.length){
       const eb=document.getElementById('err-banner');
-      eb.innerHTML=`<div style="font-size:15px;font-weight:700;color:#7f1d1d;margin-bottom:10px">⚠️ Fichier local — scan serveur impossible</div>
-        <div style="color:#991b1b;margin-bottom:14px;font-size:13.5px">Pour voir les vraies annonces, ouvre l'app depuis l'URL Railway/Render.<br>
-        En attendant, voici les recherches directement filtrées avec vos critères (budget ${fmt(BU())} €${SM()?' · '+SM()+' m² min':''}) :</div>
+      eb.innerHTML=`<div style="font-size:15px;font-weight:700;color:#7f1d1d;margin-bottom:10px">⚠️ Aucune annonce trouvée</div>
+        <div style="color:#991b1b;margin-bottom:14px;font-size:13.5px">Le scan a démarré mais PAP.fr n'a retourné aucun résultat.<br>
+        Pour diagnostiquer, ouvre : <a href="/api/debug?ville=${encodeURIComponent(VV[0]||'Paris')}" target="_blank" style="color:var(--b);font-weight:700">/api/debug?ville=${encodeURIComponent(VV[0]||'Paris')}</a><br>
+        En attendant, voici les recherches directement filtrées :</div>
         ${buildSearchLinks(BU(),SM())}
         <div style="font-size:12px;color:#9ca3af;margin-top:6px">Ces liens ouvrent directement les annonces filtrées sur chaque site.</div>`;
       eb.classList.add('show');
