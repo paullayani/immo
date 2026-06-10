@@ -1,0 +1,15 @@
+{
+  "name": "immo-pap",
+  "version": "2.0.0",
+  "description": "ImmoScout — scan PAP.fr pour investissement locatif",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
